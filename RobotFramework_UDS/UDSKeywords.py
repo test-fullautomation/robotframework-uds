@@ -4,7 +4,6 @@ from robot.libraries.BuiltIn import BuiltIn
 from RobotFramework_DoIP.DoipKeywords import DoipKeywords
 from doipclient.connectors import DoIPClientUDSConnector
 from udsoncan.client import Client
-from udsoncan.Request import Request
 from udsoncan.Response import Response
 from udsoncan.BaseService import BaseService
 
@@ -41,11 +40,8 @@ class UDSLibrary:
                     logger.warn("[uds]uds: retrieve uds failed.")
 
             logger.info("Building payload for the request...")
-
             # Build the payload
-            bytes_data = self.doip_layer.build_payload(uds)
-            service = diag_service.request.parameters.SID_RQ.coded_value
-            payload = (service, bytes_data)
+            payload = self.doip_layer.build_payload(uds)
 
             logger.info("Payload successfully built.")
         except ValueError as e:
@@ -58,37 +54,30 @@ class UDSLibrary:
         return payload
 
     @keyword("Send request")
-    def send_request(self, payload, timeout=2, subfunction = None):
+    def send_request(self, payload, timeout=2):
         if payload is None:
             raise ValueError("The payload cannot be None.")
 
         try:
-            service = BaseService.from_request_id(payload[0])
-            if subfunction == None:
-                service._use_subfunction = False
-            request = Request(service=service, subfunction=subfunction, data=payload[1])
             logger.info("Sending diagnostic message with payload...")
 
             # Send the diagnostic message
-            self.uds_connector.send(request, timeout=timeout)
+            self.doip_layer.client.send_doip(payload[0], payload[1])
             logger.info("Waiting for response...")
 
             # Receive the response with a specified timeout
-            response = self.doip_layer.receive_diagnostic_message(timeout)
+            response_encoded = self.doip_layer.receive_diagnostic_message(timeout)
             logger.info("Response received.")
             logger.info(f"Response encoded: {response_encoded}")
-            return response
+            return response_encoded
 
         except TimeoutError as e:
-            # Handle a timeout specifically
             logger.error(f"Timeout occurred while waiting for response: {e}")
             raise e
         except ValueError as e:
-            # Handle issues with the payload or response
             logger.error(f"ValueError encountered: {e}")
             raise e
         except Exception as e:
-            # Log unexpected exceptions and raise a more specific error
             logger.error("Unexpected error occurred while sending request.")
             raise Exception(f"Failed to send request due to an unexpected error. {e}")
 
