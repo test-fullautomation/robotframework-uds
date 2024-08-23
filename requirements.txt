@@ -1,0 +1,5 @@
+colorama
+pypandoc
+GenPackageDoc
+PythonExtensionsCollection
+pydotdict
