@@ -2,15 +2,13 @@ from urllib import response
 from robot.api.deco import keyword
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
-from RobotFramework_DoIP.DoipKeywords import DoipKeywords
 from doipclient.connectors import DoIPClientUDSConnector
 from tomlkit import key
 from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues, MemoryLocation
 from udsoncan.client import Client
 from udsoncan.Request import Request
 from udsoncan.Response import Response
-from udsoncan.BaseService import BaseService
-from typing import Callable, Optional, Union, Dict, List, Any, cast, Type
+from typing import Optional, Union, Dict, List, Any, cast
 from udsoncan.services import *
 from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
