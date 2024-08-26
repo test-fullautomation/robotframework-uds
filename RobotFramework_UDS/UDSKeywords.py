@@ -1,8 +1,10 @@
+from urllib import response
 from robot.api.deco import keyword
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from RobotFramework_DoIP.DoipKeywords import DoipKeywords
 from doipclient.connectors import DoIPClientUDSConnector
+from tomlkit import key
 from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues, MemoryLocation
 from udsoncan.client import Client
 from udsoncan.Request import Request
@@ -10,15 +12,38 @@ from udsoncan.Response import Response
 from udsoncan.BaseService import BaseService
 from typing import Callable, Optional, Union, Dict, List, Any, cast, Type
 from udsoncan.services import *
+from udsoncan.common.Filesize import Filesize
+from udsoncan.common.Baudrate import Baudrate
+from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
+from udsoncan.common.dtc import Dtc
+from DiagnosticServices import DiagnosticServices
+from udsoncan.configs import default_client_config
+from udsoncan import latest_standard
+from typing import cast
+from udsoncan.typing import ClientConfig
 
 class UDSLibrary:
-    def __init__(self, doip_layer, name=None, close_connection=False):
+    def __init__(self, doip_layer, name=None, config=default_client_config, close_connection=False):
         self.doip_layer = doip_layer
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(doip_layer.client, name, close_connection)
-        self.uds_connector.open()
-        self.service_list = None
+        self.uds_connector = DoIPClientUDSConnector(doip_layer.client, name, config, close_connection)
+        self.diag_service_db = None
         self.client = Client(self.uds_connector)
+        self.config = config
+
+    @keyword("Load PDX")
+    def load_pdx(self, pdx_file, variant):
+        """
+        **Description:**
+            Load PDX
+        **Parameters:**
+            * param ``pdx_file``: pdx file path
+            * type ``pdx_file``: str
+
+            * param ``variant``:
+            * type ``variant``: str
+        """
+        self.diag_service_db = DiagnosticServices(pdx_file, variant)
 
     @keyword("Build payload")
     def build_payload(self, diag_service, parameters=None):
@@ -130,17 +155,78 @@ class UDSLibrary:
         return True
 
 # Client methods/keywords
-    @keyword("Configure")
-    def configure(self):
-        return
+    @keyword("Create UDS Config")
+    def create_config(self,
+                  exception_on_negative_response = True,
+                  exception_on_invalid_response = True,
+                  exception_on_unexpected_response = True,
+                  security_algo = None,
+                  security_algo_params = None,
+                  tolerate_zero_padding = True,
+                  ignore_all_zero_dtc = True,
+                  dtc_snapshot_did_size = 2,
+                  server_address_format = None,
+                  server_memorysize_format = None,
+                  data_identifiers = {},
+                  input_output = {},
+                  request_timeout = 5,
+                  p2_timeout = 1,
+                  p2_star_timeout = 5,
+                  standard_version = latest_standard,
+                  use_server_timing = True,
+                  extended_data_size = None):
+        """
+        **Description:**
+            Create a config for UDS connector
+        **Parameters:**
+            Will be update later
+        """
+        config = cast(ClientConfig, {
+            'exception_on_negative_response': exception_on_negative_response,
+            'exception_on_invalid_response': exception_on_invalid_response,
+            'exception_on_unexpected_response': exception_on_unexpected_response,
+            'security_algo': security_algo,
+            'security_algo_params': security_algo_params,
+            'tolerate_zero_padding': tolerate_zero_padding,
+            'ignore_all_zero_dtc': ignore_all_zero_dtc,
+            'dtc_snapshot_did_size': dtc_snapshot_did_size,  # Not specified in standard. 2 bytes matches other services format.
+            'server_address_format': server_address_format,  # 8,16,24,32,40
+            'server_memorysize_format': server_memorysize_format,  # 8,16,24,32,40
+            'data_identifiers': data_identifiers,
+            'input_output': input_output,
+            'request_timeout': request_timeout,
+            'p2_timeout': p2_timeout,
+            'p2_star_timeout': p2_star_timeout,
+            'standard_version': standard_version,  # 2006, 2013, 2020
+            'use_server_timing': use_server_timing,
+            'extended_data_size': extended_data_size})
+        return config
+
+    @keyword("Set UDS Config")
+    def set_config(self):
+        '''
+        **Description:**
+            Set UDS config
+            Using create_configure to create a new config for UDS connector.
+            If not, the default config will be use.
+        '''
+        self.client.set_configs(self.config)
 
     @keyword("Connect")
     def connect(self):
-        return
+        '''
+        **Description:**
+            Open connection
+        '''
+        self.uds_connector.open()
 
     @keyword("Disconnect")
-    def connect(self):
-        return
+    def disconnect(self):
+        '''
+        **Description:**
+            Close connection
+        '''
+        self.uds_connector.close()
 
     @keyword("Access Timing Parameter")
     def access_timing_parameter(self, access_type: int, timing_param_record: Optional[bytes] = None):
@@ -287,21 +373,26 @@ class UDSLibrary:
                    masks: Optional[Union[List[str], Dict[str, bool], IOMasks, bool]] = None):
         """
         **Description:**
-            Substitutes the value of an input signal or overrides the state of an output by sending a InputOutputControlByIdentifier service request.`
+            Substitutes the value of an input signal or overrides the state of an output by sending a InputOutputControlByIdentifier service request.
         **Parameters:**
             * param ``did`` (required): Data identifier to represent the IO
             * type ``did`: int
 
-            * param ``control_param`` (optional): Optional parameter that can be a value from :class:`InputOutputControlByIdentifier.ControlParam<udsoncan.services.InputOutputControlByIdentifier.ControlParam>`
+            * param ``control_param`` (optional):
+                - returnControlToECU = 0
+                - resetToDefault = 1
+                - freezeCurrentState = 2
+                - shortTermAdjustment = 3
+
             * type ``control_param``: int
 
-            * param ``values`` (optional): Optional values to send to the server. This parameter will be given to :ref:`DidCodec<DidCodec>`.encode() method.
+            * param ``values`` (optional): Optional values to send to the server. This parameter will be given to DidCodec<DidCodec>.encode() method.
                 It can be:
                         - A list for positional arguments
                         - A dict for named arguments
                         - An instance of IOValues<IOValues> for mixed arguments
 
-            * type ``values`` (optional): list, dict, :ref:`IOValues<IOValues>`
+            * type ``values``: list, dict, IOValues<IOValues>
 
             * param masks: Optional mask record for composite values. The mask definition must be included in ``config['input_output']``
                 It can be:
@@ -312,6 +403,119 @@ class UDSLibrary:
             * type masks: list, dict, IOMask<IOMask>, bool
         """
         response = self.client.io_control(did, control_param, values, masks)
+        return response
+
+    @keyword("Link Control")
+    def link_control(self, control_type: int, baudrate: Optional[Baudrate] = None):
+        """
+        **Description:**
+            Controls the communication baudrate by sending a LinkControl service request.
+        **Parameters:**
+
+            * param ``control_type`` (required): Allowed values are from 0 to 0xFF.
+                - verifyBaudrateTransitionWithFixedBaudrate    = 1
+                - verifyBaudrateTransitionWithSpecificBaudrate = 2
+                - transitionBaudrate                           = 3
+            * type ``control_type``: int
+
+            * param ``baudrate`` (required): Required baudrate value when ``control_type`` is either ``verifyBaudrateTransitionWithFixedBaudrate`` (1) or ``verifyBaudrateTransitionWithSpecificBaudrate`` (2)
+            * type ``baudrate``: Baudrate <Baudrate>
+        """
+        response = self.client.link_control(control_type, baudrate)
+        return response
+
+    @keyword("Read Data By Identifier")
+    def read_data_by_identifier(self, data_id_list: Union[int, List[int]]):
+        """
+        **Description:**
+            Requests a value associated with a data identifier (DID) through the :ref:`ReadDataByIdentifier<ReadDataByIdentifier>` service.
+        **Parameters:**
+
+        See :ref:`an example<reading_a_did>` about how to read a DID
+
+        * param data_id_list: The list of DID to be read
+        * type data_id_list: int | list[int]
+        """
+        response = self.client.read_data_by_identifier(data_id_list)
+        return response
+
+    @keyword("Read DTC Information")
+    def read_dtc_information(self,
+                             subfunction: int,
+                             status_mask: Optional[int] = None,
+                             severity_mask: Optional[int] = None,
+                             dtc: Optional[Union[int, Dtc]] = None,
+                             snapshot_record_number: Optional[int] = None,
+                             extended_data_record_number: Optional[int] = None,
+                             extended_data_size: Optional[int] = None,
+                             memory_selection: Optional[int] = None):
+        '''
+            Update later
+        '''
+        reponse = self.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
+        return response
+
+    @keyword("Read Memory By Address")
+    def read_memory_by_address(self, memory_location: MemoryLocation):
+        '''
+        **Description:**
+            Reads a block of memory from the server by sending a ReadMemoryByAddress service request. 
+        **Parameters:**
+        
+        * param ``memory_location`` (required): The address and the size of the memory block to read.
+        * type ``memory_location``: MemoryLocation <MemoryLocation>
+        '''
+        response = self.client.read_memory_by_address(memory_location)
+        return response
+
+    @keyword("Request Download")
+    def request_download(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
+        '''
+        **Description:**
+            Informs the server that the client wants to initiate a download from the client to the server by sending a RequestDownload service request.
+
+        :Effective configuration: ``exception_on_<type>_response`` ``server_address_format`` ``server_memorysize_format``
+        **Parameters:**
+            * param ``memory_location`` (required): The address and size of the memory block to be written.
+            * type ``memory_location``: MemoryLocation <MemoryLocation>
+
+            * param ``dfi`` (optional): Optional defining the compression and encryption scheme of the data. 
+                If not specified, the default value of 00 will be used, specifying no encryption and no compression
+            * type dfi: DataFormatIdentifier <DataFormatIdentifier>
+        '''
+        response = self.client.request_download(memory_location, dfi)
+        return response
+    
+    @keyword("Request Transfer Exit")
+    def request_transfer_exit(self, data: Optional[bytes] = None):
+        '''
+        **Description:**
+            Informs the server that the client wants to stop the data transfer by sending a RequestTransferExit service request.
+
+        :Effective configuration: ``exception_on_<type>_response``
+        **Parameters:**
+            * param ``data`` (optional): Optional additional data to send to the server
+            * type ``data``: bytes
+        '''
+        response = self.client.request_transfer_exit(data)
+        return response
+
+    @keyword("Request Upload")
+    def request_upload(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
+        '''
+        **Description:**
+            Informs the server that the client wants to initiate an upload from the server to the client by sending a :ref:`RequestUpload<RequestUpload>` service request.
+
+        :Effective configuration: ``exception_on_<type>_response`` ``server_address_format`` ``server_memorysize_format``
+        **Parameters:**
+            * param ``memory_location`` (required): The address and size of the memory block to be written.
+            * type ``memory_location``: MemoryLocation <MemoryLocation>
+
+            * param dfi (optional): Optional defining the compression and encryption scheme of the data. 
+                If not specified, the default value of 00 will be used, specifying no encryption and no compression
+            *type dfi: DataFormatIdentifier <DataFormatIdentifier>
+        '''
+        response = self.client.request_upload(memory_location, dfi)
         return response
 
     @keyword("Routine Control")
@@ -336,12 +540,262 @@ class UDSLibrary:
         response = self.client.routine_control(routine_id, control_type, data)
         return response
 
-    @keyword("Read Data By Identifier")
-    def read_data_by_identifier(self, data_id_list):
-        response = self.client.read_data_by_identifier(data_id_list)
+    @keyword("Security Access")
+    def security_access(self, level, seed_params=bytes()):
+        '''
+        **Description:**
+        Successively calls request_seed and send_key to unlock a security level with the SecurityAccess service.
+        The key computation is done by calling config['security_algo']
+
+        :Effective configuration: ``exception_on_<type>_response`` ``security_algo`` ``security_algo_params``
+        **Parameters:**
+            * param ``level`` (required): The level to unlock. Can be the odd or even variant of it.
+            * type ``level``: int
+
+            * param ``seed_params`` (optional): Optional data to attach to the RequestSeed request (securityAccessDataRecord).
+            * type ``seed_params``: bytes
+        '''
+        response = self.client.unlock_security_access(level, seed_params)
         return response
 
     @keyword("Tester Present")
-    def TesterPresent(self):
+    def tester_present(self):
+        '''
+        **Description:**
+            Sends a TesterPresent request to keep the session active.
+
+        :Effective configuration: ``exception_on_<type>_response``
+        '''
         response = self.client.tester_present()
         return response
+
+    @keyword("Transfer Data")
+    def transfer_data(self, sequence_number: int, data: Optional[bytes] = None):
+        '''
+        **Description:**
+            Transfer a block of data to/from the client to/from the server by sending a TransferData service request and returning the server response.
+
+        :Effective configuration: ``exception_on_<type>_response``
+        **Parameters:**
+            * param ``sequence_number`` (required): Corresponds to an 8bit counter that should increment for each new block transferred.
+                Allowed values are from 0 to 0xFF
+            * type ``sequence_number``: int
+
+            * param ``data`` (optional): Optional additional data to send to the server
+            * type ``data``: bytes
+        '''
+        response = self.client.transfer_data(sequence_number, data)
+        return response
+    
+    @keyword("Write Data By Identifier")
+    def write_data_by_identifier(self, did: int, value: Any):
+        '''
+        **Description:**
+            Requests to write a value associated with a data identifier (DID) through the WriteDataByIdentifier service.
+
+        :Effective configuration:  ``exception_on_<type>_response`` ``data_identifiers``
+        **Parameters:**
+            * param did: The DID to write its value
+            * type did: int
+
+            * param value: Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
+            * type value: int
+        '''
+        response = self.client.write_data_by_identifier(did, value)
+        return response
+
+    @keyword("Write Memory By Address")
+    def write_memory_by_address(self, memory_location: MemoryLocation, data: bytes):
+        '''
+        **Description:**
+            Writes a block of memory in the server by sending a WriteMemoryByAddress service request. 
+
+        :Effective configuration: ``exception_on_<type>_response`` ``server_address_format`` ``server_memorysize_format``
+        **Parameters:**
+            * param ``memory_location`` (required): The address and the size of the memory block to read. 
+            * type ``memory_location``: MemoryLocation <MemoryLocation>
+
+            * param ``data`` (required): The data to write into memory.
+            * type ``data``: bytes
+        '''
+        response = self.client.write_memory_by_address(memory_location, data)
+        return response
+
+    @keyword("Request File Transfer")
+    def request_file_transfer(self, 
+                              moop: int,
+                              path: str = '',
+                              dfi: Optional[DataFormatIdentifier] = None,
+                              filesize: Optional[Union[int, Filesize]] = None):
+        
+        '''
+        **Parameters:**
+            * param ``moop`` (required): Mode operate
+                - AddFile = 1
+                - DeleteFile = 2
+                - ReplaceFile = 3
+                - ReadFile = 4
+                - ReadDir = 5
+                - ResumeFile = 6
+            
+            * type ``moop``: int
+            
+            * param ``path`` (required):
+            * type ``path``: str
+
+            * param ``dfi``: DataFormatIdentifier defining the compression and encryption scheme of the data.
+                If not specified, the default value of 00 will be used, specifying no encryption and no compression.
+                Use for ``moop``:
+                    - AddFile = 1
+                    - ReplaceFile = 3
+                    - ReadFile = 4
+                    - ResumeFile = 6
+
+            * type ``dfi``: DataFormatIdentifier
+
+            * param ``filesize`` (optional): The filesize of the file to write. 
+            If filesize is an object of type Filesize<Filesize>, the uncompressed size and compressed size will be encoded on
+            the minimum amount of bytes necessary, unless a ``width`` is explicitly defined. If no compressed size is given or filesize is an ``int``,
+            then the compressed size will be set equal to the uncompressed size or the integer value given as specified by ISO-14229
+            Use for ``moop``:
+                    - AddFile = 1
+                    - ReplaceFile = 3
+                    - ResumeFile = 6
+
+            * type ``filesize``: int | Filesize
+        '''
+        
+        response = self.client.request_file_transfer(moop, path, dfi, filesize)
+        return response
+
+    @keyword("Authentication")
+    def authentication(self,
+                       authentication_task: int,
+                       communication_configuration: Optional[int] = None,
+                       certificate_client: Optional[bytes] = None,
+                       challenge_client: Optional[bytes] = None,
+                       algorithm_indicator: Optional[bytes] = None,
+                       certificate_evaluation_id: Optional[int] = None,
+                       certificate_data: Optional[bytes] = None,
+                       proof_of_ownership_client: Optional[bytes] = None,
+                       ephemeral_public_key_client: Optional[bytes] = None,
+                       additional_parameter: Optional[bytes] = None):
+        '''
+        **Description:**
+            Sends an Authentication request introduced in 2020 version of ISO-14229-1. You can also use the helper functions to send each authentication task (sub function).
+
+        :Effective configuration: ``exception_on_<type>_response``
+        **Parameters:**
+            * param ``authentication_task`` (required): The authenticationTask (subfunction) to use.
+                - deAuthenticate = 0
+                - verifyCertificateUnidirectional = 1
+                - verifyCertificateBidirectional = 2
+                - proofOfOwnership = 3
+                - transmitCertificate = 4
+                - requestChallengeForAuthentication = 5
+                - verifyProofOfOwnershipUnidirectional = 6
+                - verifyProofOfOwnershipBidirectional = 7
+                - authenticationConfiguration = 8
+
+            * type ``authentication_task``: int
+
+            * param ``communication_configuration`` (optional): Optional Configuration information about how to proceed with security in further diagnostic communication after the Authentication (vehicle manufacturer specific).
+                Allowed values are from 0 to 255.
+            * type ``communication_configuration``: int
+
+            * param ``certificate_client`` (optional): Optional The Certificate to verify.
+            * type ``certificate_client``: bytes
+
+            * param ``challenge_client`` (optional): Optional The challenge contains vehicle manufacturer specific formatted client data (likely containing randomized information) or is a random number.
+            * type ``challenge_client``: bytes
+
+            * param ``algorithm_indicator`` (optional): Optional Indicates the algorithm used in the generating and verifying Proof of Ownership (POWN),
+                which further determines the parameters used in the algorithm and possibly the session key creation mode.
+                This field is a 16 byte value containing the BER encoded OID value of the algorithm used.
+                The value is left aligned and right padded with zero up to 16 bytes.
+            * type ``algorithm_indicator``: bytes
+
+            * param ``certificate_evaluation_id``: Optional unique ID to identify the evaluation type of the transmitted certificate.
+                The value of this parameter is vehicle manufacturer specific.
+                Subsequent diagnostic requests with the same evaluationTypeId will overwrite the certificate data of the previous requests.
+                Allowed values are from 0 to 0xFFFF.
+            * type certificate_evaluation_id: int
+
+            * param ``certificate_data`` (optional): Optional The Certificate to verify.
+            * type ``certificate_data``: bytes
+
+            * param ``proof_of_ownership_client`` (optional): Optional Proof of Ownership of the previous given challenge to be verified by the server.
+            * type ``proof_of_ownership_client``: bytes
+
+            * param ``ephemeral_public_key_client`` (optional): Optional Ephemeral public key generated by the client for Diffie-Hellman key agreement.
+            * type ``ephemeral_public_key_client``: bytes
+
+            * param ``additional_parameter`` (optional): Optional additional parameter is provided to the server if the server indicates as neededAdditionalParameter.
+            * type ``additional_parameter``: bytes
+        '''
+        response = self.client.authentication(authentication_task,
+                                              communication_configuration,
+                                              certificate_client,
+                                              challenge_client,
+                                              algorithm_indicator,
+                                              certificate_evaluation_id,
+                                              certificate_data,
+                                              proof_of_ownership_client,
+                                              ephemeral_public_key_client,
+                                              additional_parameter)
+        return response
+
+    @keyword("Routine Control By Name")
+    def routine_control_by_name(self, routine_name, control_type, data):
+        """
+        **Description:**
+            Sends a request for the RoutineControl service by routine name
+        **Parameters:**
+            * param ``routine_name`` (required): Name of routine
+            * type ``routine_name``: str
+
+            * param ``control_type`` (required): The service subfunction
+            * type ``control_type`` int
+            * valid ``control_type``
+                - startRoutine          = 1
+                - stopRoutine           = 2
+                - requestRoutineResults = 3
+
+            * param ``data`` (optional): Optional additional data to give to the server
+            * type ``data`` bytes
+        """
+        diag_services = self.diag_service_db.read_data_by_name([routine_name])
+        routine_ids = self.diag_service_db.get_encoded_request_message(diag_services)
+        routine_id = routine_ids[0]
+        
+        response = self.routine_control(routine_id, control_type, data)
+        return response
+
+    @keyword("Read Data By Name")
+    def read_data_by_name(self, service_name_list = []):
+        """
+        **Description:**
+            Get diagnostic service list by list of service name
+        **Parameters:**
+            * param ``service_name_list``: list of service name
+            * type ``service_name_list``: list[str]
+        """
+        diag_service_list = []
+        diag_service_list = self.diag_service_db.read_data_by_name(service_name_list)
+        return diag_service_list
+
+    @keyword("Get encoded request message")
+    def get_encoded_request_message(self, diag_service_list, parameters=None):
+        """
+            **Description:**
+                Get diagnostic service encoded request list (hex value)
+            **Parameters:**
+                * param ``diag_service_list``: Diagnostic service list
+                * type ``diag_service_list``: []
+
+                * param ``parameters``: parameter list
+                * type ``parameters``: list[]
+        """
+        uds_list = []
+        uds_list - self.diag_service_db.get_encoded_request_message(diag_service_list, parameters)
+        return uds_list
