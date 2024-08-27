@@ -20,11 +20,20 @@ from udsoncan import latest_standard
 from typing import cast
 from udsoncan.typing import ClientConfig
 
-class UDSLibrary:
-    def __init__(self, doip_layer, name=None, config=default_client_config, close_connection=False):
+class UDSKeywords:
+    def __init__(self):
+        self.doip_layer = None
+        self.name = None
+        self.uds_connector = DoIPClientUDSConnector(None)
+        self.diag_service_db = None
+        self.client = Client(self.uds_connector)
+        self.config = default_client_config
+
+    @keyword("Connect UDS Connector")
+    def connect_uds_connector(self, doip_layer, name=None, config=default_client_config, close_connection=False):
         self.doip_layer = doip_layer
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(doip_layer.client, name, config, close_connection)
+        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
         self.diag_service_db = None
         self.client = Client(self.uds_connector)
         self.config = config
@@ -210,19 +219,19 @@ class UDSLibrary:
         '''
         self.client.set_configs(self.config)
 
-    @keyword("Connect")
+    @keyword("Open uds connection")
     def connect(self):
         '''
         **Description:**
-            Open connection
+            Open uds connection
         '''
         self.uds_connector.open()
 
-    @keyword("Disconnect")
+    @keyword("Close UDS Connection")
     def disconnect(self):
         '''
         **Description:**
-            Close connection
+            Close uds connection
         '''
         self.uds_connector.close()
 
