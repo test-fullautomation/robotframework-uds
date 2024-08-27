@@ -11,9 +11,9 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-from RobotFramework_UDS.UDSKeywords import UDSKeywords
-from RobotFramework_UDS.version import VERSION
 
+from .UDSKeywords import UDSKeywords
+from .version import VERSION
 
 class RobotFramework_UDS(UDSKeywords):
     """

@@ -1,23 +1,18 @@
-from urllib import response
 from robot.api.deco import keyword
 from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn
 from doipclient.connectors import DoIPClientUDSConnector
-from tomlkit import key
 from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues, MemoryLocation
 from udsoncan.client import Client
-from udsoncan.Request import Request
 from udsoncan.Response import Response
 from typing import Optional, Union, Dict, List, Any, cast
-from udsoncan.services import *
+# from udsoncan.services import *
 from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from .DiagnosticServices import DiagnosticServices
+from RobotFramework_UDS.DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
-from typing import cast
 from udsoncan.typing import ClientConfig
 from RobotFramework_DoIP import DoipKeywords, constants
 
@@ -33,7 +28,7 @@ class UDSKeywords:
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, name=None, config=default_client_config, close_connection=False):
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
+        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, close_connection)
         self.diag_service_db = None
         self.client = Client(self.uds_connector)
         self.config = config
@@ -204,7 +199,7 @@ class UDSKeywords:
             logger.error(f"Error interpreting response: {str(e)}")
 
     @keyword("Validate response content")
-    def validate_content_response(response: Response, expected_service: int, expected_data=None):
+    def validate_content_response(self, response: Response, expected_service: int, expected_data=None):
         """
         Validates the content of a UDS response.
 
@@ -323,7 +318,7 @@ class UDSKeywords:
             * param ``timing_param_record`` (optional): The parameters data. Specific to each ECU.
             * type ``timing_param_record`` bytes
         """
-        response = self.client.access_timing_parameter(self, access_type, timing_param_record)
+        response = self.client.access_timing_parameter(access_type, timing_param_record)
         return response
 
     @keyword("Clear Diagnostic Information")
@@ -531,7 +526,7 @@ class UDSKeywords:
             Update later
         '''
         reponse = self.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
-        return response
+        return reponse
 
     @keyword("Read Memory By Address")
     def read_memory_by_address(self, memory_location: MemoryLocation):

@@ -1,6 +1,4 @@
-from udsoncan import Routine
 from robot.api import logger
-from robot.api.deco import keyword
 import odxtools
 
 
@@ -21,7 +19,7 @@ class DiagnosticServices:
             try:
                 diag_service = getattr(self.diag_services, service_name)
                 diag_service_list.append(diag_service)
-            except Exception as e:
+            except:
                 logger.error(f"Diagnostic service does not contain an item named {service_name}")
 
         return diag_service_list
