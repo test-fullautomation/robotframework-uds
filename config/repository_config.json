@@ -13,7 +13,7 @@
    "DEVELOPMENTSTATUS" : "Development Status :: 4 - Beta",
    "INTENDEDAUDIENCE" : "Intended Audience :: Developers",
    "TOPIC" : "Topic :: Software Development",
-   "INSTALLREQUIRES" : ["TODO","TODO"],
+   "INSTALLREQUIRES" : ["robotframework", "udsoncan", "doipclient", "odxtools"],
    "PACKAGEDATA" : ["*.pdf"],
    "PACKAGEDOC" : "./packagedoc",
    "CONSOLESCRIPTS" : []
