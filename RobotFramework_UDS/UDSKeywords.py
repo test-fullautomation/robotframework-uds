@@ -277,7 +277,7 @@ class UDSLibrary(object):
         '''
         self.uds_connector.open()
 
-    @keyword("Disconnect UDS Connection")
+    @keyword("Close UDS Connection")
     def disconnect(self):
         '''
         **Description:**
