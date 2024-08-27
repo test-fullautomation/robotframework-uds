@@ -1,0 +1,53 @@
+name: Publish RobotFramework UDS to PyPI
+
+on:
+  push:
+    tags:
+      - "rel/*.*.*"
+      - "rel/*.*.*.*"
+
+jobs:
+  build-n-publish:
+      name: Build and publish to PyPI
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+
+      steps:
+        - name: Checkout source
+          uses: actions/checkout@v2
+
+        - name: Set up Python
+          uses: actions/setup-python@v4.3.0
+          with:
+            python-version: "3.9"
+
+        - name: Install dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y pandoc
+            sudo apt-get install -y texlive-latex-*
+            echo "GENDOC_LATEXPATH=$(dirname $(which pdflatex))" >> $GITHUB_ENV
+            python -m pip install --upgrade build twine wheel
+            python -m pip install -r ./requirements.txt
+
+        - name: Build source and wheel distributions
+          run: |
+            python setup.py sdist bdist_wheel
+            twine check --strict dist/*
+
+        - name: Publish distribution to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1
+          with:
+            skip-existing: true
+            password: ${{ secrets.PYPI_API_TOKEN }} # This token should be created in Settings > Secrets > Actions
+            # repository_url: https://test.pypi.org/legacy/ # Use this for testing to upload the distribution to test.pypi
+
+        - name: Create/Update GitHub Release
+          id: create_update_release
+          uses: ncipollo/release-action@v1
+          with:
+            allowUpdates: true
+            omitNameDuringUpdate: true
+            makeLatest: true
+            artifacts: dist/*
