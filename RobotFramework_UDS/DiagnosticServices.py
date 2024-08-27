@@ -4,7 +4,7 @@ from robot.api.deco import keyword
 import odxtools
 
 
-class DiagnosticServices:
+class DiagnosticServices(object):
     def __init__(self, pdx_file, variant):
         self.variant = variant
         self.pdx_file = pdx_file

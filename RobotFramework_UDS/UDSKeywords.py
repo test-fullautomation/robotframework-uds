@@ -14,17 +14,76 @@ from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
 from udsoncan.typing import ClientConfig
+from robot.libraries.BuiltIn import BuiltIn
+import odxtools
 
-class UDSLibrary:
-    def __init__(self, doip_layer, name=None, config=default_client_config, close_connection=False):
+class UDSLibrary(object):
+    class DiagnosticServices:
+        def __init__(self, pdx_file, variant):
+            self.variant = variant
+            self.pdx_file = pdx_file
+            # load pdx file
+            odxtools.exceptions.strict_mode = False
+            self.odx_db = odxtools.load_pdx_file(self.pdx_file)
+            odxtools.exceptions.strict_mode = True
+            self.odx_ecu = self.odx_db.ecus[self.variant]
+            self.diag_services = self.odx_db.ecus[self.variant].services
+
+        def read_data_by_name(self, service_name_list):
+            diag_service_list = []
+            for service_name in service_name_list:
+                try:
+                    diag_service = getattr(self.diag_services, service_name)
+                    diag_service_list.append(diag_service)
+                except Exception as e:
+                    logger.error(f"Diagnostic service does not contain an item named {service_name}")
+
+            return diag_service_list
+
+        def get_encoded_request_message(self, diag_service_list, parameters=None):
+            uds_list = []
+            for diag_service in diag_service_list:
+                param_dict = {}
+                uds = ""
+                logger.info(f"[uds] Service name: {diag_service}")
+                if parameters:
+                    for param in parameters:
+                        isolate_list = param.split("=")
+                        param_dict[isolate_list[0]] = eval(isolate_list[1])
+
+                    logger.info(f"[uds] Parameters: {param_dict}")
+                    try:
+                        uds = diag_service(**param_dict).hex()
+                        uds_list.append(uds)
+                    except:
+                        logger.info(f"UDS: Retrieve uds failed.")
+                else:
+                    uds = diag_service().hex()
+                    if len(uds) > 0:
+                        logger.info(f"UDS: {uds}")
+                        uds_list.append(uds)
+                    else:
+                        logger.info("UDS: Retrieve uds failed.")
+
+            return uds_list
+
+    def __init__(self):
+        self.doip_layer = None
+        self.name = None
+        self.uds_connector = DoIPClientUDSConnector(None)
+        self.diag_service_db = None
+        self.client = Client(self.uds_connector)
+        self.config = default_client_config
+
+    @keyword("Connect UDS Connector")
+    def connect_uds_connector(self, doip_layer, name=None, config=default_client_config, close_connection=False):
         self.doip_layer = doip_layer
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(doip_layer.client, name, config, close_connection)
+        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
         self.diag_service_db = None
         self.client = Client(self.uds_connector)
         self.config = config
@@ -41,7 +100,7 @@ class UDSLibrary:
             * param ``variant``:
             * type ``variant``: str
         """
-        self.diag_service_db = DiagnosticServices(pdx_file, variant)
+        self.diag_service_db = UDSLibrary.DiagnosticServices(pdx_file, variant)
 
     @keyword("Build payload")
     def build_payload(self, diag_service, parameters=None):
@@ -210,7 +269,7 @@ class UDSLibrary:
         '''
         self.client.set_configs(self.config)
 
-    @keyword("Connect")
+    @keyword("Open UDS Connection")
     def connect(self):
         '''
         **Description:**
@@ -218,7 +277,7 @@ class UDSLibrary:
         '''
         self.uds_connector.open()
 
-    @keyword("Disconnect")
+    @keyword("Disconnect UDS Connection")
     def disconnect(self):
         '''
         **Description:**
