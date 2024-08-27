@@ -14,11 +14,12 @@ from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from DiagnosticServices import DiagnosticServices
+from .DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
 from udsoncan.typing import ClientConfig
+from RobotFramework_DoIP import DoipKeywords, constants
 
 class UDSKeywords:
     def __init__(self):
@@ -30,13 +31,83 @@ class UDSKeywords:
         self.config = default_client_config
 
     @keyword("Connect UDS Connector")
-    def connect_uds_connector(self, doip_layer, name=None, config=default_client_config, close_connection=False):
-        self.doip_layer = doip_layer
+    def connect_uds_connector(self, name=None, config=default_client_config, close_connection=False):
         self.name = name
         self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
         self.diag_service_db = None
         self.client = Client(self.uds_connector)
         self.config = config
+
+    @keyword("Create UDS Connector")
+    def create_uds_connector(self,
+                             ecu_ip_address,
+                             ecu_logical_address,
+                             name="doip",
+                             tcp_port=constants.TCP_DATA_UNSECURED,
+                             udp_port=constants.UDP_DISCOVERY,
+                             activation_type=constants.ActivationTypeDefault,
+                             protocol_version=0x02,
+                             client_logical_address=0x0E00,
+                             client_ip_address=None,
+                             use_secure=False,
+                             auto_reconnect_tcp=False):
+        """
+        **Description:**
+            Create a connection to establish
+        **Parameters:**
+            * param ``name``: Name of connection
+
+                - doip: Establish a doip connection to an (ECU)
+            * type ``name``: str
+
+            * param ``ecu_ip_address`` (required): The IP address of the ECU to establish a connection. This should be a string representing an IPv4
+                    address like "192.168.1.1" or an IPv6 address like "2001:db8::".
+            * type ``ecu_ip_address``: str
+
+            * param ``ecu_logical_address`` (required): The logical address of the ECU.
+            * type ``ecu_logical_address``: any
+
+            * param ``tcp_port`` (optional): The TCP port used for unsecured data communication (default is **TCP_DATA_UNSECURED**).
+            * type ``tcp_port``: int
+
+            * param ``udp_port`` (optional): The UDP port used for ECU discovery (default is **UDP_DISCOVERY**).
+            * type ``udp_port``: int
+
+            * param ``activation_type`` (optional): The type of activation, which can be the default value (ActivationTypeDefault) or a specific value based on application-specific settings.
+            * type ``activation_type``: RoutingActivationRequest.ActivationType,
+
+            * param ``protocol_version`` (optional): The version of the protocol used for the connection (default is 0x02).
+            * type ``protocol_version``: int
+
+            * param ``client_logical_address`` (optional): The logical address that this DoIP client will use to identify itself. Per the spec,
+                    this should be 0x0E00 to 0x0FFF. Can typically be left as default.
+            * type ``client_logical_address``: int
+
+            * param ``client_ip_address`` (optional): If specified, attempts to bind to this IP as the source for both UDP and TCP communication.
+                    Useful if you have multiple network adapters. Can be an IPv4 or IPv6 address just like `ecu_ip_address`, though
+                    the type should match.
+            * type ``client_ip_address``: str
+
+            * param ``use_secure`` (optional): Enables TLS. If set to True, a default SSL context is used. For more control, a preconfigured
+                    SSL context can be passed directly. Untested. Should be combined with changing tcp_port to 3496.
+            * type ``use_secure``: Union[bool,ssl.SSLContext]
+
+            * param ``auto_reconnect_tcp`` (optional): Attempt to automatically reconnect TCP sockets that were closed by peer
+            * type ``auto_reconnect_tcp``: bool
+        """
+        if name=="doip":
+            doip = DoipKeywords()
+            self.doip_layer = doip.connect_to_ecu(self,
+                                                  ecu_ip_address,
+                                                  ecu_logical_address,
+                                                  tcp_port,
+                                                  udp_port,
+                                                  activation_type,
+                                                  protocol_version,
+                                                  client_logical_address,
+                                                  client_ip_address,
+                                                  use_secure,
+                                                  auto_reconnect_tcp)
 
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant):
@@ -779,17 +850,24 @@ class UDSKeywords:
         return response
 
     @keyword("Read Data By Name")
-    def read_data_by_name(self, service_name_list = []):
+    def read_data_by_name(self, service_name_list = [], parameters = None):
         """
         **Description:**
             Get diagnostic service list by list of service name
         **Parameters:**
             * param ``service_name_list``: list of service name
             * type ``service_name_list``: list[str]
+
+            * param ``parameters``: parameter list
+            * type ``parameters``: list[]
         """
         diag_service_list = []
+        data_id_list = []
         diag_service_list = self.diag_service_db.read_data_by_name(service_name_list)
-        return diag_service_list
+        for service_name in service_name_list:
+            data_id_list.append(service_name.request.id.hex())
+        response = self.read_data_by_identifier(data_id_list)
+        return response
 
     @keyword("Get encoded request message")
     def get_encoded_request_message(self, diag_service_list, parameters=None):
