@@ -1,3 +1,4 @@
+from email import message
 from robot.api.deco import keyword
 from robot.api import logger
 from doipclient.connectors import DoIPClientUDSConnector
@@ -13,7 +14,8 @@ from RobotFramework_UDS.DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from udsoncan.typing import ClientConfig
-from RobotFramework_DoIP import DoipKeywords, constants
+from doipclient import DoIPClient
+from doipclient import messages
 from robot.libraries.BuiltIn import BuiltIn
 import udsoncan
 
@@ -45,14 +47,9 @@ class UDSKeywords:
                              ecu_ip_address,
                              ecu_logical_address,
                              name="doip",
-                             tcp_port=constants.TCP_DATA_UNSECURED,
-                             udp_port=constants.UDP_DISCOVERY,
-                             activation_type=constants.ActivationTypeDefault,
-                             protocol_version=0x02,
+                             activation_type=0,
                              client_logical_address=0x0E00,
-                             client_ip_address=None,
-                             use_secure=False,
-                             auto_reconnect_tcp=False):
+                             client_ip_address=None):
         """
         **Description:**
             Create a connection to establish
@@ -69,17 +66,8 @@ class UDSKeywords:
             * param ``ecu_logical_address`` (required): The logical address of the ECU.
             * type ``ecu_logical_address``: any
 
-            * param ``tcp_port`` (optional): The TCP port used for unsecured data communication (default is **TCP_DATA_UNSECURED**).
-            * type ``tcp_port``: int
-
-            * param ``udp_port`` (optional): The UDP port used for ECU discovery (default is **UDP_DISCOVERY**).
-            * type ``udp_port``: int
-
             * param ``activation_type`` (optional): The type of activation, which can be the default value (ActivationTypeDefault) or a specific value based on application-specific settings.
             * type ``activation_type``: RoutingActivationRequest.ActivationType,
-
-            * param ``protocol_version`` (optional): The version of the protocol used for the connection (default is 0x02).
-            * type ``protocol_version``: int
 
             * param ``client_logical_address`` (optional): The logical address that this DoIP client will use to identify itself. Per the spec,
                     this should be 0x0E00 to 0x0FFF. Can typically be left as default.
@@ -89,13 +77,6 @@ class UDSKeywords:
                     Useful if you have multiple network adapters. Can be an IPv4 or IPv6 address just like `ecu_ip_address`, though
                     the type should match.
             * type ``client_ip_address``: str
-
-            * param ``use_secure`` (optional): Enables TLS. If set to True, a default SSL context is used. For more control, a preconfigured
-                    SSL context can be passed directly. Untested. Should be combined with changing tcp_port to 3496.
-            * type ``use_secure``: Union[bool,ssl.SSLContext]
-
-            * param ``auto_reconnect_tcp`` (optional): Attempt to automatically reconnect TCP sockets that were closed by peer
-            * type ``auto_reconnect_tcp``: bool
         """
         if isinstance(ecu_logical_address, str):
             ecu_logical_address = int(ecu_logical_address)
@@ -103,18 +84,16 @@ class UDSKeywords:
         if isinstance(client_logical_address, str):
             client_logical_address = int(client_logical_address)
 
+        ecu_ip_address = ecu_ip_address.strip()
+        client_ip_address = client_ip_address.strip()
+
         if name=="doip":
-            doip = DoipKeywords()
-            doip.connect_to_ecu(ecu_ip_address.strip(),
-                                                  ecu_logical_address,
-                                                  tcp_port,
-                                                  udp_port,
-                                                  activation_type,
-                                                  protocol_version,
-                                                  client_logical_address,
-                                                  client_ip_address.strip(),
-                                                  use_secure,
-                                                  auto_reconnect_tcp)
+            doip = DoIPClient()
+            doip.connect_to_ecu(ecu_ip_address,
+                                ecu_logical_address,
+                                activation_type,
+                                client_logical_address,
+                                client_ip_address)
             self.doip_layer = doip
 
     @keyword("Load PDX")
@@ -158,7 +137,14 @@ class UDSKeywords:
 
             logger.info("Building payload for the request...")
             # Build the payload
-            payload = self.doip_layer.build_payload(uds)
+            if uds is None:
+                raise ValueError("The request cannot be None.")
+            
+            msg = bytes.fromhex(uds)
+            message = messages.DiagnosticMessage(self.client._client_logical_address, self.client._ecu_logical_address, msg)
+            rtype = messages.payload_message_to_type[type(message)]
+            rdata = message.pack()
+            payload = self.client._pack_doip(self.client._protocol_version, rtype, rdata)
 
             logger.info("Payload successfully built.")
         except ValueError as e:
@@ -168,7 +154,19 @@ class UDSKeywords:
             logger.error(f"TypeError while building payload: {e}")
             raise
 
-        return payload
+        return bytes(payload)
+
+
+        if request is None:
+            raise ValueError("The request cannot be None.")
+
+        msg = bytes.fromhex(request)
+        message = messages.DiagnosticMessage(self.client._client_logical_address, self.client._ecu_logical_address, msg)
+        rtype = messages.payload_message_to_type[type(message)]
+        rdata = message.pack()
+        data_bytes = self.client._pack_doip(self.client._protocol_version, rtype, rdata)
+
+        return bytes(data_bytes)
 
     @keyword("Send request")
     def send_request(self, payload, timeout=2):
