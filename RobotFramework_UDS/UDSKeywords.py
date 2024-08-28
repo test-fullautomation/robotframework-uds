@@ -5,7 +5,6 @@ from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues,
 from udsoncan.client import Client
 from udsoncan.Response import Response
 from typing import Optional, Union, Dict, List, Any, cast
-# from udsoncan.services import *
 from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
@@ -15,6 +14,7 @@ from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from udsoncan.typing import ClientConfig
 from RobotFramework_DoIP import DoipKeywords, constants
+from robot.libraries.BuiltIn import BuiltIn
 
 class UDSKeywords:
     def __init__(self):
