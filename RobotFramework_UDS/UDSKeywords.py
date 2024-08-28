@@ -15,6 +15,7 @@ from udsoncan import latest_standard
 from udsoncan.typing import ClientConfig
 from RobotFramework_DoIP import DoipKeywords, constants
 from robot.libraries.BuiltIn import BuiltIn
+import udsoncan
 
 class UDSKeywords:
     def __init__(self):
@@ -456,7 +457,7 @@ class UDSKeywords:
         try:
             response = self.client.ecu_reset(reset_type)
         except Exception as e:
-            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
+            BuiltIn().fail(f"Fail to send a ECU Reset request. Reason: {e}")
         return response
 
     @keyword("Input Output Control By Identifier")
@@ -634,7 +635,7 @@ class UDSKeywords:
         try:
             response = self.client.routine_control(routine_id, control_type, data)
         except Exception as e:
-            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
+            BuiltIn().fail(f"Fail to send a Routine Control request. Reason: {e}")
         return response
 
     @keyword("Security Access")
