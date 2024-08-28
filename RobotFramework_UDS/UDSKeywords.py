@@ -25,18 +25,24 @@ class UDSKeywords:
     def __init__(self):
         self.doip_layer = None
         self.name = None
-        self.uds_connector = DoIPClientUDSConnector(None)
+        self.uds_connector = None
         self.diag_service_db = None
-        self.client = Client(self.uds_connector)
+        self.client = None
         self.config = default_client_config
+        self.config['data_identifiers'] = {
+            'default' : '>H'                       # Default codec is a struct.pack/unpack string. 16bits little endian
+            # 0xF190 : udsoncan.AsciiCodec(15),    # Codec that read ASCII string. We must tell the length of the string
+            # 0x6330 : udsoncan.AsciiCodec(15)
+        }
 
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, name=None, config=default_client_config, close_connection=False):
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
         self.diag_service_db = None
-        self.client = Client(self.uds_connector)
         self.config = config
+        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, close_connection)
+        self.client = Client(self.uds_connector, self.config)
+        print("")
 
     @keyword("Create UDS Connector")
     def create_uds_connector(self,
@@ -95,19 +101,25 @@ class UDSKeywords:
             * param ``auto_reconnect_tcp`` (optional): Attempt to automatically reconnect TCP sockets that were closed by peer
             * type ``auto_reconnect_tcp``: bool
         """
+        if isinstance(ecu_logical_address, str):
+            ecu_logical_address = int(ecu_logical_address)
+
+        if isinstance(client_logical_address, str):
+            client_logical_address = int(client_logical_address)
+
         if name=="doip":
             doip = DoipKeywords()
-            self.doip_layer = doip.connect_to_ecu(self,
-                                                  ecu_ip_address,
+            doip.connect_to_ecu(ecu_ip_address.strip(),
                                                   ecu_logical_address,
                                                   tcp_port,
                                                   udp_port,
                                                   activation_type,
                                                   protocol_version,
                                                   client_logical_address,
-                                                  client_ip_address,
+                                                  client_ip_address.strip(),
                                                   use_secure,
                                                   auto_reconnect_tcp)
+            self.doip_layer = doip
 
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant):
@@ -203,34 +215,34 @@ class UDSKeywords:
         except Exception as e:
             logger.error(f"Error interpreting response: {str(e)}")
 
-    @keyword("Validate response content")
-    def validate_content_response(response: Response, expected_service: int, expected_data=None):
-        """
-        Validates the content of a UDS response.
+    # @keyword("Validate response content")
+    # def validate_content_response(response: Response, expected_service: int, expected_data=None):
+    #     """
+    #     Validates the content of a UDS response.
 
-        :param response: The UDS response object to validate.
-        :param expected_service: The expected service ID of the response.
-        :param expected_data: The expected data (optional) to be matched within the response.
-        :return: True if the response is valid, False otherwise.
-        """
-        # Check if the response service is as expected
-        if response.service != expected_service:
-            logger.error(f"Unexpected service ID: {response.service} (expected: {expected_service})")
-            return False
+    #     :param response: The UDS response object to validate.
+    #     :param expected_service: The expected service ID of the response.
+    #     :param expected_data: The expected data (optional) to be matched within the response.
+    #     :return: True if the response is valid, False otherwise.
+    #     """
+    #     # Check if the response service is as expected
+    #     if response.service != expected_service:
+    #         logger.error(f"Unexpected service ID: {response.service} (expected: {expected_service})")
+    #         return False
 
-        # Check if the response is a positive response
-        if response.code != Response.Code.PositiveResponse:
-            logger.error(f"Unexpected response code: {response.code}")
-            return False
+    #     # Check if the response is a positive response
+    #     if response.code != Response.Code.PositiveResponse:
+    #         logger.error(f"Unexpected response code: {response.code}")
+    #         return False
 
-        # Validate the content of the response data, if expected data is provided
-        if expected_data is not None:
-            if response.data != expected_data:
-                logger.error(f"Unexpected response data: {response.data} (expected: {expected_data})")
-                return False
+    #     # Validate the content of the response data, if expected data is provided
+    #     if expected_data is not None:
+    #         if response.data != expected_data:
+    #             logger.error(f"Unexpected response data: {response.data} (expected: {expected_data})")
+    #             return False
 
-        logger.info("Response is valid.")
-        return True
+    #     logger.info("Response is valid.")
+    #     return True
 
 # Client methods/keywords
     @keyword("Create UDS Config")
@@ -407,6 +419,8 @@ class UDSKeywords:
 
             * type ``newsession``: int
         """
+        if isinstance(session_type, str):
+            session_type = int(session_type)
         response = self.client.change_session(session_type)
         return response
 
@@ -440,7 +454,14 @@ class UDSKeywords:
 
             * type reset_type: int
         """
-        response = self.client.ecu_reset(reset_type)
+        response = None
+        if isinstance(reset_type, str):
+            reset_type = int(reset_type)
+
+        try:
+            response = self.client.ecu_reset(reset_type)
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
         return response
 
     @keyword("Input Output Control By Identifier")
@@ -615,7 +636,10 @@ class UDSKeywords:
             * param ``data`` (optional): Optional additional data to give to the server
             * type ``data`` bytes
         """
-        response = self.client.routine_control(routine_id, control_type, data)
+        try:
+            response = self.client.routine_control(routine_id, control_type, data)
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
         return response
 
     @keyword("Security Access")
@@ -644,7 +668,11 @@ class UDSKeywords:
 
         :Effective configuration: ``exception_on_<type>_response``
         '''
-        response = self.client.tester_present()
+        response = None
+        try:
+            response = self.client.tester_present()
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
         return response
 
     @keyword("Transfer Data")
@@ -824,7 +852,7 @@ class UDSKeywords:
         return response
 
     @keyword("Routine Control By Name")
-    def routine_control_by_name(self, routine_name, control_type, data):
+    def routine_control_by_name(self, routine_name, data = None):
         """
         **Description:**
             Sends a request for the RoutineControl service by routine name
@@ -842,9 +870,11 @@ class UDSKeywords:
             * param ``data`` (optional): Optional additional data to give to the server
             * type ``data`` bytes
         """
-        diag_services = self.diag_service_db.read_data_by_name([routine_name])
-        routine_ids = self.diag_service_db.get_encoded_request_message(diag_services)
-        routine_id = routine_ids[0]
+        diag_services = self.diag_service_db.get_data_by_name([routine_name])
+        control_type = diag_services[0].request.parameters[1].coded_value
+        if control_type != 1 and control_type != 2:
+            control_type = 3
+        routine_id = diag_services[0].request.parameters[2].coded_value
         
         response = self.routine_control(routine_id, control_type, data)
         return response
@@ -863,9 +893,12 @@ class UDSKeywords:
         """
         diag_service_list = []
         data_id_list = []
-        diag_service_list = self.diag_service_db.read_data_by_name(service_name_list)
-        for service_name in service_name_list:
-            data_id_list.append(service_name.request.id.hex())
+
+        diag_service_list = self.diag_service_db.get_data_by_name(service_name_list)
+        for diag_service in diag_service_list:
+            diag_service_request_list = []
+            data_id = diag_service.request.parameters[1].coded_value
+            data_id_list.append(data_id)
         response = self.read_data_by_identifier(data_id_list)
         return response
 

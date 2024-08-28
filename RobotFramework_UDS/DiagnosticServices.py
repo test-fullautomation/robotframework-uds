@@ -15,7 +15,7 @@ class DiagnosticServices:
         self.odx_ecu = self.odx_db.ecus[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
-    def read_data_by_name(self, service_name_list):
+    def get_data_by_name(self, service_name_list):
         diag_service_list = []
         for service_name in service_name_list:
             try:
