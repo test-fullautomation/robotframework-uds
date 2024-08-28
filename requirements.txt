@@ -2,4 +2,7 @@ colorama
 pypandoc
 GenPackageDoc
 PythonExtensionsCollection
-pydotdict
+robotframework
+udsoncan
+doipclient
+odxtools

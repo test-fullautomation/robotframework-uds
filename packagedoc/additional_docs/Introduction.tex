@@ -12,6 +12,18 @@
 % See the License for the specific language governing permissions and
 % limitations under the License.
 
-\section{TODO}
+The library \pkg\ provides a set of \textbf{Robot Framework} keywords 
+for sending UDS (Unified Diagnostic Services) requests and interpreting 
+responses from automotive electronic control units (ECUs).
 
-TODO
+Whether you're testing diagnostic sessions, reading data, or controlling 
+routines on an ECU, the UDS Library simplifies these tasks by offering specific 
+keywords like \rcode{DiagnosticSessionControl}, \rcode{ReadDataByIdentifier}, 
+and \rcode{RoutineControl}. 
+
+These keywords are designed to handle the complexity of UDS communication, 
+enabling you to write efficient and reliable automated tests.
+
+Moreover, you can now refer to UDS services by their readable names rather than 
+hexadecimal IDs e.g \rcode{ReadDataByName}, \rcode{RoutineControlByName}
+It helps to make your tests more intuitive and easier to maintain.

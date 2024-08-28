@@ -1,23 +1,18 @@
-from urllib import response
 from robot.api.deco import keyword
 from robot.api import logger
-from robot.libraries.BuiltIn import BuiltIn
 from doipclient.connectors import DoIPClientUDSConnector
-from tomlkit import key
 from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues, MemoryLocation
 from udsoncan.client import Client
-from udsoncan.Request import Request
 from udsoncan.Response import Response
 from typing import Optional, Union, Dict, List, Any, cast
-from udsoncan.services import *
+# from udsoncan.services import *
 from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from .DiagnosticServices import DiagnosticServices
+from RobotFramework_UDS.DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
-from typing import cast
 from udsoncan.typing import ClientConfig
 from RobotFramework_DoIP import DoipKeywords, constants
 
@@ -215,34 +210,34 @@ class UDSKeywords:
         except Exception as e:
             logger.error(f"Error interpreting response: {str(e)}")
 
-    # @keyword("Validate response content")
-    # def validate_content_response(response: Response, expected_service: int, expected_data=None):
-    #     """
-    #     Validates the content of a UDS response.
+    @keyword("Validate response content")
+    def validate_content_response(self, response: Response, expected_service: int, expected_data=None):
+        """
+        Validates the content of a UDS response.
 
-    #     :param response: The UDS response object to validate.
-    #     :param expected_service: The expected service ID of the response.
-    #     :param expected_data: The expected data (optional) to be matched within the response.
-    #     :return: True if the response is valid, False otherwise.
-    #     """
-    #     # Check if the response service is as expected
-    #     if response.service != expected_service:
-    #         logger.error(f"Unexpected service ID: {response.service} (expected: {expected_service})")
-    #         return False
+        :param response: The UDS response object to validate.
+        :param expected_service: The expected service ID of the response.
+        :param expected_data: The expected data (optional) to be matched within the response.
+        :return: True if the response is valid, False otherwise.
+        """
+        # Check if the response service is as expected
+        if response.service != expected_service:
+            logger.error(f"Unexpected service ID: {response.service} (expected: {expected_service})")
+            return False
 
-    #     # Check if the response is a positive response
-    #     if response.code != Response.Code.PositiveResponse:
-    #         logger.error(f"Unexpected response code: {response.code}")
-    #         return False
+        # Check if the response is a positive response
+        if response.code != Response.Code.PositiveResponse:
+            logger.error(f"Unexpected response code: {response.code}")
+            return False
 
-    #     # Validate the content of the response data, if expected data is provided
-    #     if expected_data is not None:
-    #         if response.data != expected_data:
-    #             logger.error(f"Unexpected response data: {response.data} (expected: {expected_data})")
-    #             return False
+        # Validate the content of the response data, if expected data is provided
+        if expected_data is not None:
+            if response.data != expected_data:
+                logger.error(f"Unexpected response data: {response.data} (expected: {expected_data})")
+                return False
 
-    #     logger.info("Response is valid.")
-    #     return True
+        logger.info("Response is valid.")
+        return True
 
 # Client methods/keywords
     @keyword("Create UDS Config")
@@ -335,7 +330,7 @@ class UDSKeywords:
             * param ``timing_param_record`` (optional): The parameters data. Specific to each ECU.
             * type ``timing_param_record`` bytes
         """
-        response = self.client.access_timing_parameter(self, access_type, timing_param_record)
+        response = self.client.access_timing_parameter(access_type, timing_param_record)
         return response
 
     @keyword("Clear Diagnostic Information")
@@ -551,7 +546,7 @@ class UDSKeywords:
         '''
             Update later
         '''
-        reponse = self.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
+        response = self.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
         return response
 
     @keyword("Read Memory By Address")

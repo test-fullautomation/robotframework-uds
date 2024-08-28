@@ -14,7 +14,83 @@
 
 % --------------------------------------------------------------------------------------------------------------
 
-\section{TODO}
+\section{Overview}
+The \pkg\ is designed to interface with automotive ECUs using the UDS protocol 
+over the DoIP (Diagnostic over IP) transport layer. 
+This library abstracts the complexities of UDS communication, allowing users to 
+focus on writing high-level test cases that validate specific diagnostic 
+services and responses.
 
-TODO
+\section{UDS Connector (DoIP)}
+Currently, the library supports the \rcode{DoIP} (Diagnostic over IP) transport 
+layer, which is commonly used in modern vehicles for diagnostic communication. 
+DoIP allows for faster data transfer rates and easier integration with 
+network-based systems compared to traditional CAN-based diagnostics.
 
+\section{Configuration}
+In order to connect and send/receive message properly using the \pkg\, 
+certain configurations must be set up:
+
+\begin{itemize}
+   \item DoIP Configuration:
+         The library requires the IP address and port of the ECU or the gateway 
+         through which the ECU is accessed.
+   \item Data Identifiers and Codec:
+         Define the Data Identifiers (DIDs) and corresponding codecs in the 
+         library’s configuration. 
+         This enables correct encoding and decoding of data between the test 
+         cases and the ECU.
+   \item Session Management: 
+         Some UDS services may require the ECU to be in a specific diagnostic 
+         session (e.g., extended diagnostics). 
+         The library should be configured to manage these session transitions 
+         seamlessly.
+\end{itemize}
+
+\section{Supported UDS Services}
+The \pkg\ library supports almost UDS service as defined in 
+\href{https://automotive.wiki/index.php/ISO_14229}{ISO 14229}, 
+providing comprehensive coverage for ECU diagnostics.
+
+For detailed information on specific services and how to use them, please refer 
+to the next section.
+
+\section{Enhancements Usability with ODXTools Integration}
+The \pkg\ library comes with 
+\href{https://github.com/mercedes-benz/odxtools}{odxtools} fully integrated, 
+allowing you to use readable service names instead of dealing with hex IDs.
+
+You can now specify service names directly in your test cases, 
+making them more readable and user-friendly.
+
+Example Usage with Readable Service Names
+
+Need to be updated
+\begin{robotcode}
+*** Settings ***
+Library    RobotFramework_UDS
+
+*** Test Cases ***
+Read Data By Service Name Test Case
+   ReadDataByName    ${ServiceName}
+\end{robotcode}
+
+\section{Examples}
+To be added
+\begin{robotcode}
+*** Settings ***
+Library    RobotFramework_UDS
+
+*** Test Cases ***
+Tester Present Test Case 
+   Tester Present
+
+Routine Control Test Case
+   Routine Control    ${id}    ${type}
+
+Read Data By Identifier Test Case
+   ReadDataByIdentifier    ${did}
+
+Reset ECU Test Case
+   Ecu Reset    ${type}
+\end{robotcode}
