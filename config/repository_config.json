@@ -1,9 +1,9 @@
 {
    "REPOSITORYNAME" : "robotframework-uds",
    "PACKAGENAME" : "RobotFramework_UDS",
-   "AUTHOR" : "TODO",
-   "AUTHOREMAIL" : "TODO",
-   "DESCRIPTION" : "TODO",
+   "AUTHOR" : "Mai Minh Tri",
+   "AUTHOREMAIL" : "tri.maiMinh@vn.bosch.com",
+   "DESCRIPTION" : "Robot Framework keywords for UDS (Unified Diagnostic Services) communication",
    "LONGDESCRIPTIONCONTENTTYPE" : "text/markdown",
    "URL" : "https://github.com/test-fullautomation/robotframework-uds",
    "PROGRAMMINGLANGUAGE" : "Programming Language :: Python :: 3",
