@@ -1,42 +1,157 @@
-from urllib import response
 from robot.api.deco import keyword
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from doipclient.connectors import DoIPClientUDSConnector
-from tomlkit import key
 from udsoncan import CommunicationType, DynamicDidDefinition, IOMasks, IOValues, MemoryLocation
 from udsoncan.client import Client
-from udsoncan.Request import Request
 from udsoncan.Response import Response
 from typing import Optional, Union, Dict, List, Any, cast
-from udsoncan.services import *
 from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from DiagnosticServices import DiagnosticServices
+from .DiagnosticServices import DiagnosticServices
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
 from udsoncan.typing import ClientConfig
+from doipclient import DoIPClient, constants, messages
+from udsoncan.connections import PythonIsoTpConnection
+import udsoncan
 
 class UDSKeywords:
     def __init__(self):
-        self.doip_layer = None
+        self.connector = None
         self.name = None
-        self.uds_connector = DoIPClientUDSConnector(None)
+        self.uds_connector = None
         self.diag_service_db = None
-        self.client = Client(self.uds_connector)
+        self.client = None
         self.config = default_client_config
+        self.config['data_identifiers'] = {
+            'default' : '>H'                       # Default codec is a struct.pack/unpack string. 16bits little endian
+            # 0xF190 : udsoncan.AsciiCodec(15),    # Codec that read ASCII string. We must tell the length of the string
+            # 0x6330 : udsoncan.AsciiCodec(15)
+        }
 
     @keyword("Connect UDS Connector")
-    def connect_uds_connector(self, doip_layer, name=None, config=default_client_config, close_connection=False):
-        self.doip_layer = doip_layer
+    def connect_uds_connector(self, name=None, config=default_client_config, close_connection=False):
         self.name = name
-        self.uds_connector = DoIPClientUDSConnector(self.doip_layer.client, self.name, self.config, close_connection)
         self.diag_service_db = None
-        self.client = Client(self.uds_connector)
         self.config = config
+        self.uds_connector = DoIPClientUDSConnector(self.connector, self.name, close_connection)
+        self.client = Client(self.uds_connector, self.config)
+
+    @keyword("Create UDS Connector")
+    def create_uds_connector(self, name="doip", **kwargs):
+        """
+        **Description:**
+            Create a connection to establish
+        **Parameters:**
+            * param ``name``: Name of connection
+
+                - doip: Establish a doip connection to an (ECU)
+            * type ``name``: str
+
+            * param ``ecu_ip_address`` (required): The IP address of the ECU to establish a connection. This should be a string representing an IPv4
+                    address like "192.168.1.1" or an IPv6 address like "2001:db8::".
+            * type ``ecu_ip_address``: str
+
+            * param ``ecu_logical_address`` (required): The logical address of the ECU.
+            * type ``ecu_logical_address``: any
+
+            * param ``tcp_port`` (optional): The TCP port used for unsecured data communication (default is **TCP_DATA_UNSECURED**).
+            * type ``tcp_port``: int
+
+            * param ``udp_port`` (optional): The UDP port used for ECU discovery (default is **UDP_DISCOVERY**).
+            * type ``udp_port``: int
+
+            * param ``activation_type`` (optional): The type of activation, which can be the default value (ActivationTypeDefault) or a specific value based on application-specific settings.
+            * type ``activation_type``: RoutingActivationRequest.ActivationType,
+
+            * param ``protocol_version`` (optional): The version of the protocol used for the connection (default is 0x02).
+            * type ``protocol_version``: int
+
+            * param ``client_logical_address`` (optional): The logical address that this DoIP client will use to identify itself. Per the spec,
+                    this should be 0x0E00 to 0x0FFF. Can typically be left as default.
+            * type ``client_logical_address``: int
+
+            * param ``client_ip_address`` (optional): If specified, attempts to bind to this IP as the source for both UDP and TCP communication.
+                    Useful if you have multiple network adapters. Can be an IPv4 or IPv6 address just like `ecu_ip_address`, though
+                    the type should match.
+            * type ``client_ip_address``: str
+
+            * param ``use_secure`` (optional): Enables TLS. If set to True, a default SSL context is used. For more control, a preconfigured
+                    SSL context can be passed directly. Untested. Should be combined with changing tcp_port to 3496.
+            * type ``use_secure``: Union[bool,ssl.SSLContext]
+
+            * param ``auto_reconnect_tcp`` (optional): Attempt to automatically reconnect TCP sockets that were closed by peer
+            * type ``auto_reconnect_tcp``: bool
+        """
+        if name.lower() == "doip":
+            # Define required parameters
+            required_params = ['ecu_ip_address', 'ecu_logical_address']
+
+            # Check for missing required parameters and raise an error if any are missing
+            missing_params = [param for param in required_params if param not in kwargs]
+            if missing_params:
+                raise ValueError(f"Missing required parameter(s): {', '.join(missing_params)}")
+
+            # Extract parameters from kwargs or set default values if they are optional
+            ecu_ip_address = kwargs['ecu_ip_address'].strip()
+            ecu_logical_address = kwargs['ecu_logical_address']
+            tcp_port = kwargs.get('tcp_port', constants.TCP_DATA_UNSECURED)
+            udp_port = kwargs.get('udp_port', constants.UDP_DISCOVERY)
+            activation_type = kwargs.get('activation_type', messages.RoutingActivationRequest.ActivationType.Default)
+            protocol_version = kwargs.get('protocol_version', 0x02)
+            client_logical_address = kwargs.get('client_logical_address', 0x0E00)
+            client_ip_address = kwargs.get('client_ip_address', None)
+            use_secure = kwargs.get('use_secure', False)
+            auto_reconnect_tcp = kwargs.get('auto_reconnect_tcp', True)
+
+            if client_ip_address != None:
+                client_ip_address = client_ip_address.strip()
+
+            if isinstance(ecu_logical_address, str):
+                ecu_logical_address = int(ecu_logical_address)
+
+            if isinstance(client_logical_address, str):
+                client_logical_address = int(client_logical_address)
+
+            if isinstance(activation_type, str):
+                activation_type = int(activation_type)
+
+            self.connector = DoIPClient(ecu_ip_address,
+                              ecu_logical_address,
+                              tcp_port,
+                              udp_port,
+                              activation_type,
+                              protocol_version,
+                              client_logical_address,
+                              client_ip_address,
+                              use_secure,
+                              auto_reconnect_tcp)
+
+        elif name.lower() == "can":
+            # Define required parameters
+            required_params = ['interface', 'txid', 'rxid', 'baudrate']
+
+            # Check for missing required parameters and raise an error if any are missing
+            missing_params = [param for param in required_params if param not in kwargs]
+
+            if missing_params:
+                raise ValueError(f"Missing required parameter(s): {', '.join(missing_params)}")
+
+            # Extract parameters from kwargs or set default values if they are optional
+            interface = kwargs['interface_name']
+            txid = int(kwargs['txid'], 16)
+            rxid = int(kwargs['rxid'], 16)
+            baudrate = kwargs['baudrate']
+
+            self.connector = PythonIsoTpConnection(interface,
+                                                   txid,
+                                                   rxid,
+                                                   baudrate)
+
 
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant):
@@ -79,7 +194,14 @@ class UDSKeywords:
 
             logger.info("Building payload for the request...")
             # Build the payload
-            payload = self.doip_layer.build_payload(uds)
+            if uds is None:
+                raise ValueError("The request cannot be None.")
+
+            msg = bytes.fromhex(uds)
+            message = messages.DiagnosticMessage(self.client._client_logical_address, self.client._ecu_logical_address, msg)
+            rtype = messages.payload_message_to_type[type(message)]
+            rdata = message.pack()
+            payload = self.client._pack_doip(self.client._protocol_version, rtype, rdata)
 
             logger.info("Payload successfully built.")
         except ValueError as e:
@@ -89,51 +211,10 @@ class UDSKeywords:
             logger.error(f"TypeError while building payload: {e}")
             raise
 
-        return payload
-
-    @keyword("Send request")
-    def send_request(self, payload, timeout=2):
-        if payload is None:
-            raise ValueError("The payload cannot be None.")
-
-        try:
-            logger.info("Sending diagnostic message with payload...")
-
-            # Send the diagnostic message
-            self.doip_layer.client.send_doip(payload[0], payload[1])
-            logger.info("Waiting for response...")
-
-            # Receive the response with a specified timeout
-            response_encoded = self.doip_layer.receive_diagnostic_message(timeout)
-            logger.info("Response received.")
-            logger.info(f"Response encoded: {response_encoded}")
-            return response_encoded
-
-        except TimeoutError as e:
-            logger.error(f"Timeout occurred while waiting for response: {e}")
-            raise e
-        except ValueError as e:
-            logger.error(f"ValueError encountered: {e}")
-            raise e
-        except Exception as e:
-            logger.error("Unexpected error occurred while sending request.")
-            raise Exception(f"Failed to send request due to an unexpected error. {e}")
-
-    @keyword("Interpret response data")
-    def interpret_response_data(self, response):
-        try:
-            msg = bytes.fromhex(response)
-            res = Response()
-            res = res.from_payload(msg)
-            logger.info("Successfully interpreted response")
-            # Log relevant information from res if needed
-            logger.info(f"Response details: {res.code_name}")
-            print(f"Response details: {res.code_name}")
-        except Exception as e:
-            logger.error(f"Error interpreting response: {str(e)}")
+        return bytes(payload)
 
     @keyword("Validate response content")
-    def validate_content_response(response: Response, expected_service: int, expected_data=None):
+    def validate_content_response(self, response, expected_service: int, expected_data=None):
         """
         Validates the content of a UDS response.
 
@@ -142,9 +223,7 @@ class UDSKeywords:
         :param expected_data: The expected data (optional) to be matched within the response.
         :return: True if the response is valid, False otherwise.
         """
-        # Check if the response service is as expected
-        if response.service != expected_service:
-            logger.error(f"Unexpected service ID: {response.service} (expected: {expected_service})")
+        if response is None:
             return False
 
         # Check if the response is a positive response
@@ -161,7 +240,6 @@ class UDSKeywords:
         logger.info("Response is valid.")
         return True
 
-# Client methods/keywords
     @keyword("Create UDS Config")
     def create_config(self,
                   exception_on_negative_response = True,
@@ -252,7 +330,7 @@ class UDSKeywords:
             * param ``timing_param_record`` (optional): The parameters data. Specific to each ECU.
             * type ``timing_param_record`` bytes
         """
-        response = self.client.access_timing_parameter(self, access_type, timing_param_record)
+        response = self.client.access_timing_parameter(access_type, timing_param_record)
         return response
 
     @keyword("Clear Diagnostic Information")
@@ -336,6 +414,8 @@ class UDSKeywords:
 
             * type ``newsession``: int
         """
+        if isinstance(session_type, str):
+            session_type = int(session_type)
         response = self.client.change_session(session_type)
         return response
 
@@ -369,7 +449,14 @@ class UDSKeywords:
 
             * type reset_type: int
         """
-        response = self.client.ecu_reset(reset_type)
+        response = None
+        if isinstance(reset_type, str):
+            reset_type = int(reset_type)
+
+        try:
+            response = self.client.ecu_reset(reset_type)
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a ECU Reset request. Reason: {e}")
         return response
 
     @keyword("Input Output Control By Identifier")
@@ -544,7 +631,10 @@ class UDSKeywords:
             * param ``data`` (optional): Optional additional data to give to the server
             * type ``data`` bytes
         """
-        response = self.client.routine_control(routine_id, control_type, data)
+        try:
+            response = self.client.routine_control(routine_id, control_type, data)
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a Routine Control request. Reason: {e}")
         return response
 
     @keyword("Security Access")
@@ -573,7 +663,11 @@ class UDSKeywords:
 
         :Effective configuration: ``exception_on_<type>_response``
         '''
-        response = self.client.tester_present()
+        response = None
+        try:
+            response = self.client.tester_present()
+        except Exception as e:
+            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
         return response
 
     @keyword("Transfer Data")
@@ -753,7 +847,7 @@ class UDSKeywords:
         return response
 
     @keyword("Routine Control By Name")
-    def routine_control_by_name(self, routine_name, control_type, data):
+    def routine_control_by_name(self, routine_name, data = None):
         """
         **Description:**
             Sends a request for the RoutineControl service by routine name
@@ -771,25 +865,37 @@ class UDSKeywords:
             * param ``data`` (optional): Optional additional data to give to the server
             * type ``data`` bytes
         """
-        diag_services = self.diag_service_db.read_data_by_name([routine_name])
-        routine_ids = self.diag_service_db.get_encoded_request_message(diag_services)
-        routine_id = routine_ids[0]
+        diag_services = self.diag_service_db.get_data_by_name([routine_name])
+        control_type = diag_services[0].request.parameters[1].coded_value
+        if control_type != 1 and control_type != 2:
+            control_type = 3
+        routine_id = diag_services[0].request.parameters[2].coded_value
         
         response = self.routine_control(routine_id, control_type, data)
         return response
 
     @keyword("Read Data By Name")
-    def read_data_by_name(self, service_name_list = []):
+    def read_data_by_name(self, service_name_list = [], parameters = None):
         """
         **Description:**
             Get diagnostic service list by list of service name
         **Parameters:**
             * param ``service_name_list``: list of service name
             * type ``service_name_list``: list[str]
+
+            * param ``parameters``: parameter list
+            * type ``parameters``: list[]
         """
         diag_service_list = []
-        diag_service_list = self.diag_service_db.read_data_by_name(service_name_list)
-        return diag_service_list
+        data_id_list = []
+
+        diag_service_list = self.diag_service_db.get_data_by_name(service_name_list)
+        for diag_service in diag_service_list:
+            diag_service_request_list = []
+            data_id = diag_service.request.parameters[1].coded_value
+            data_id_list.append(data_id)
+        response = self.read_data_by_identifier(data_id_list)
+        return response
 
     @keyword("Get encoded request message")
     def get_encoded_request_message(self, diag_service_list, parameters=None):

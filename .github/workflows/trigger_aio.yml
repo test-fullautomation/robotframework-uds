@@ -6,7 +6,7 @@ on:
           - closed
           - opened
           - synchronize
-      branches: 
+      branches:
           - develop
 env:
     GH_TOKEN: ${{ github.token }}

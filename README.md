@@ -2,8 +2,18 @@
 
 ## Getting Started
 
-The **RobotFramework_UDS** is a Python3 package which allows programmers
-to \...
+The library **RobotFramework_UDS** provides a set of Robot Framework
+keywords for sending UDS (UnifiedDiagnostic Services) requests and
+interpreting responses from automotive electronic control units (ECUs).
+
+Whether you're testing diagnostic sessions, reading data, or controlling
+routines on an ECU, the UDS Library simplifies these tasks by offering
+specific keywords for almost almost UDS service as defined in [ISO
+14229](https://automotive.wiki/index.php/ISO_14229).
+
+These keywords are designed to handle the complexity of UDS
+communication, enabling you to write efficient and reliable automated
+tests.
 
 ## How to install
 
@@ -90,9 +100,13 @@ please don\'t hesitate to raise a ticket.
 
 [Thomas Pollerspöck](mailto:Thomas.Pollerspoeck@de.bosch.com)
 
+[Mai Minh Tri](mailto:tri.maiminh@vn.bosch.com)
+
 ## Contributors
 
-TODO
+[Holger Queckenstedt](mailto:holger.queckenstedt@de.bosch.com)
+
+[Tran Duy Ngoan](mailto:ngoan.tranduy@vn.bosch.com)
 
 ## License
 
