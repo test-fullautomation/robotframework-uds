@@ -24,7 +24,7 @@ from automotive electronic control units (ECUs).
 
 Whether you’re testing diagnostic sessions, reading data, or controlling 
 routines on an ECU, the UDS Library simplifies these tasks by offering specific 
-keywords for almost almost UDS service as defined in 
+keywords for almost any UDS service as defined in 
 `ISO 14229 <https://automotive.wiki/index.php/ISO_14229>`_. 
 
 These keywords are designed to handle the complexity of UDS communication, 
