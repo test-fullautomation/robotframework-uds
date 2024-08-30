@@ -45,10 +45,60 @@
 # ------------------------------------------
 
    "RELEASES"  : {
-                   "0.13.1.;0.14.0." : [
+                   "0.13.0." : [
 "
-* this and that
-* has been changed
+**Initial introduction of keyword library RobotFramework_UDS**
+
+``RobotFramework_UDS`` provides a set of Robot Framework keywords for sending 
+UDS (UnifiedDiagnostic Services) requests and interpreting responses from 
+automotive electronic control units (ECUs).
+
+This library supports almost UDS services such as ``Tester Present``, ``Routine Control``,
+``Read Data By Identifier``, ... 
+
+Besides, it also provides some enhancement keywords which allow you to use readable
+service names instead of dealing with hex IDs. 
+
+Example test case with UDS:
+
+.. code-block::
+
+   *** Settings ***
+   Library           RobotFramework_UDS
+   Suite Setup       Connect
+   Suite Teardown    Disconnect
+
+   *** Variables ***
+   ${SUT_IP_ADDRESS}=         ecu_ip_address
+   ${SUT_LOGICAL_ADDRESS}=    ecu_logical_address
+   ${TB_IP_ADDRESS}=          client_ip_address
+   ${TB_LOGICAL_ADDRESS}=     client_logical_address
+   ${ACTIVATION_TYPE}=        0
+   ${NAME}=       UDS Connector
+
+   *** Keywords ***
+   Connect
+      Log    Create a uds Connector (DoIP) and establish the connection
+      ${uds}=    Create UDS Connector    ecu_ip_address= ${SUT_IP_ADDRESS}
+      ...                                ecu_logical_address= ${SUT_LOGICAL_ADDRESS}
+      ...                                client_ip_address= ${TB_IP_ADDRESS}
+      ...                                client_logical_address= ${TB_LOGICAL_ADDRESS}
+      ...                                activation_type= ${ACTIVATION_TYPE}
+      Connect UDS Connector    name=${Name}
+      Open UDS Connection
+
+   Disconnect
+      Log    Close uds connection
+      Close UDS Connection
+
+   *** Test Cases ***
+   Test user can use Tester Present service on ECU
+      Log    Use Tester Present service
+      ${response}=    Tester Present
+
+
+Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
+for more details.
 "
                                        ]
                  }
