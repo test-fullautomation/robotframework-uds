@@ -1,5 +1,6 @@
 from robot.api import logger
 import odxtools
+from udsoncan.common.DidCodec import DidCodec
 
 
 class DiagnosticServices:
@@ -50,3 +51,23 @@ class DiagnosticServices:
                     logger.info("UDS: Retrieve uds failed.")
 
         return uds_list
+
+    def get_did_codec(self):
+        did_codec = {}
+        read_services = self.odx_db.diag_layers[self.variant].service_groups[0x22]
+        for service_diag in read_services:
+            did = service_diag.request.parameters[1].coded_value
+            did_codec[did] = PDXDidCodec(service_diag)
+
+        return did_codec
+
+class PDXDidCodec(DidCodec):
+    def __init__(self, service):
+        self.service = service
+
+    def decode(self, payload):
+        return self.service.decode_message(payload).param_dict
+
+    def __len__(self):
+        bit_length = self.service.positive_responses[0].get_static_bit_length()
+        return bit_length>>3
