@@ -11,7 +11,7 @@ ${TB_IP_ADDRESS}=    192.168.0.99
 ${TB_LOGICAL_ADDRESS}=    1895
 ${ACTIVATION_TYPE}=    0
 
-${FILE}=    C:/Users/MAR3HC/Desktop/New folder/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
+${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
 ${VARIANT}=    CTS_STLA_Brain
 
 ${NAME}=    UDS Connector
@@ -73,7 +73,6 @@ Test user can use Routine Control By Name service on ECU
 
     Log    PingTest_Start_NoResponse
     Routine Control By Name    PingTest_Start_NoResponse
-    Routine Control    3047    3
 
 Test user can use Diagnostic Session Control service on ECU
     Log    Diagnostic Session Control service

@@ -1,4 +1,5 @@
 from robot.api import logger
+from udsoncan.common.DidCodec import DidCodec
 import odxtools
 
 
@@ -10,7 +11,7 @@ class DiagnosticServices:
         odxtools.exceptions.strict_mode = False
         self.odx_db = odxtools.load_pdx_file(self.pdx_file)
         odxtools.exceptions.strict_mode = True
-        self.odx_ecu = self.odx_db.ecus[self.variant]
+        self.diag_layer = self.odx_db.ecus[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
     def get_data_by_name(self, service_name_list):
@@ -50,3 +51,34 @@ class DiagnosticServices:
                     logger.info("UDS: Retrieve uds failed.")
 
         return uds_list
+
+    def get_did_codec(self, service_id):
+        did_codec = {}
+
+        diag_services = self.diag_layer.service_groups[service_id]
+        for diag_service in diag_services:
+            did = diag_service.request.parameters[1].coded_value
+            did_codec[did] = PDXCodec(diag_service)
+
+        return did_codec
+
+class PDXCodec(DidCodec):
+    def __init__(self, service):
+        self.service = service
+
+    def decode(self, string_bin: bytes):
+
+        parameters = self.service.positive_responses[0].parameters
+        response_prefix_hex = "".join([hex(parameters[0].coded_value).replace("0x", ""), hex(parameters[1].coded_value).replace("0x", "")])
+
+        string_hex = "".join([response_prefix_hex, string_bin.hex()])
+        response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
+        return response
+
+    def __len__(self) -> int:
+        bit_length = self.service.positive_responses[0].get_static_bit_length()
+        string_len =  (bit_length >> 3) - 3
+        
+        return string_len
+
+

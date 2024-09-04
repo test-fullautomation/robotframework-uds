@@ -28,9 +28,9 @@ class UDSKeywords:
         self.client = None
         self.config = default_client_config
         self.config['data_identifiers'] = {
-            'default' : '>H'                       # Default codec is a struct.pack/unpack string. 16bits little endian
-            # 0xF190 : udsoncan.AsciiCodec(15),    # Codec that read ASCII string. We must tell the length of the string
-            # 0x6330 : udsoncan.AsciiCodec(15)
+            'default' : '>H',                       # Default codec is a struct.pack/unpack string. 16bits little endian
+            # 0xF190 : udsoncan.AsciiCodec(15)      # Codec that read ASCII string. We must tell the length of the string
+            # 0x6330 : DidCodec(diag_service)       # See `get_did_codec` method for more info
         }
 
     @keyword("Connect UDS Connector")
@@ -266,7 +266,7 @@ class UDSKeywords:
         **Parameters:**
             Will be update later
         """
-        config = cast(ClientConfig, {
+        self.config = cast(ClientConfig, {
             'exception_on_negative_response': exception_on_negative_response,
             'exception_on_invalid_response': exception_on_invalid_response,
             'exception_on_unexpected_response': exception_on_unexpected_response,
@@ -285,7 +285,6 @@ class UDSKeywords:
             'standard_version': standard_version,  # 2006, 2013, 2020
             'use_server_timing': use_server_timing,
             'extended_data_size': extended_data_size})
-        return config
 
     @keyword("Set UDS Config")
     def set_config(self):
@@ -530,7 +529,17 @@ class UDSKeywords:
         * param data_id_list: The list of DID to be read
         * type data_id_list: int | list[int]
         """
+        SID_RQ = 34 # The request id of read data by identifier
+
+        # Get the did_codec from pdx file
+        did_codec = self.diag_service_db.get_did_codec(SID_RQ)
+
+        # Set it to uds config
+        self.config['data_identifiers'].update(did_codec)
+        self.set_config()
+
         response = self.client.read_data_by_identifier(data_id_list)
+        logger.info(response.service_data.values[data_id_list[0]])
         return response
 
     @keyword("Read DTC Information")
