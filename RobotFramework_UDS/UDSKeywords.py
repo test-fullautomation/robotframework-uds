@@ -28,9 +28,9 @@ class UDSKeywords:
         self.client = None
         self.config = default_client_config
         self.config['data_identifiers'] = {
-            'default' : '>H'                       # Default codec is a struct.pack/unpack string. 16bits little endian
-            # 0xF190 : udsoncan.AsciiCodec(15),    # Codec that read ASCII string. We must tell the length of the string
-            # 0x6330 : udsoncan.AsciiCodec(15)
+            'default' : '>H',                       # Default codec is a struct.pack/unpack string. 16bits little endian
+            # 0xF190 : udsoncan.AsciiCodec(15)      # Codec that read ASCII string. We must tell the length of the string
+            # 0x6330 : DidCodec(diag_service)       # See `get_did_codec` method for more info
         }
 
     @keyword("Connect UDS Connector")
@@ -264,9 +264,131 @@ class UDSKeywords:
         **Description:**
             Create a config for UDS connector
         **Parameters:**
-            Will be update later
+            * param `exception_on_negative_response`:
+              When set to True, the client will raise a NegativeResponseException when the server responds with a negative response.
+              When set to False, the returned Response will have its property positive set to False
+            * type `exception_on_negative_response`: bool
+
+            * param `exception_on_invalid_response`:
+              When set to True, the client will raise a InvalidResponseException when the underlying service interpret_response raises the same exception.
+              When set to False, the returned Response will have its property valid set to False
+            * type `exception_on_invalid_response`: bool
+
+            * param `exception_on_unexpected_response`:
+              When set to True, the client will raise a UnexpectedResponseException when the server returns a response that is not expected.
+              For instance, a response for a different service or when the subfunction echo doesn't match the request.
+              When set to False, the returned Response will have its property unexpected set to True in the same case.
+            * type `exception_on_unexpected_response`: bool
+
+            * param `security_algo`:
+              The implementation of the security algorithm necessary for the SecurityAccess service.
+            * type `security_algo`:
+                This function must have the following signatures:
+                SomeAlgorithm(level, seed, params)
+                    Parameters: - level (int) - The requested security level.
+                                - seed (bytes) - The seed given by the server
+                                - params - The value provided by the client configuration security_algo_params
+
+                    Returns: The security key
+                    Return type: bytes
+
+            * param `security_algo_params`:
+                This value will be given to the security algorithm defined in config['security_algo'].
+            * type `security_algo_params`: object | dict
+
+            * param `data_identifiers`:
+                This configuration is a dictionary that is mapping an integer (the data identifier) with a DidCodec.
+                These codecs will be used to convert values to byte payload and vice-versa when sending/receiving data for a service that needs a DID, i.e:
+                    - ReadDataByIdentifier
+                    - ReadDataByName
+                    - WriteDataByIdentifier
+                    - ReadDTCInformation with subfunction reportDTCSnapshotRecordByDTCNumber and reportDTCSnapshotRecordByRecordNumber
+            * type `data_identifiers`: dict
+                Possible configuration values are
+                    - string : The string will be used as a pack/unpack string when processing the data
+                    - DidCodec (class or instance) : The encode/decode method will be used to process the data
+
+            * param `input_output`:
+                This configuration is a dictionary that is mapping an integer (the IO data identifier) with a DidCodec specifically for the InputOutputControlByIdentifier service.
+                Just like config[data_identifers], these codecs will be used to convert values to byte payload and vice-versa when sending/receiving data.
+                Since InputOutputControlByIdentifier supports composite codecs, it is possible to provide a sub-dictionary as a codec specifying the bitmasks.
+            * type `input_output`: dict
+                Possible configuration values are:
+                    - string : The string will be used as a pack/unpack string when processing the data
+                    - DidCodec (class or instance) : The encode/decode method will be used to process the data
+                    - dict : The dictionary entry indicates a composite DID. Three subkeys must be defined as:
+                            - codec : The codec, a string or a DidCodec class/instance
+                            - mask : A dictionary mapping the mask name with a bit
+                            - mask_size : An integer indicating on how many bytes must the mask be encoded
+                The special dictionnary key `default` can be used to specify a fallback codec if an operation is done on a codec not part of the configuration.
+                Useful for scanning a range of DID
+
+            * param `tolerate_zero_padding`:
+                This value will be passed to the services `interpret_response` when the parameter is supported as in ReadDataByIdentifier, ReadDTCInformation.
+                It has to ignore trailing zeros in the response data to avoid falsely raising InvalidResponseException if the underlying protocol uses some zero-padding.
+            * type `tolerate_zero_padding`: bool
+
+            * param `ignore_all_zero_dtc`
+                This value is used with the ReadDTCInformation service when reading DTCs. It will skip any DTC that has an ID of 0x000000.
+                If the underlying protocol uses zero-padding, it may generate a valid response data of all zeros. This parameter is different from config['tolerate_zero_padding'].
+                Read `https://udsoncan.readthedocs.io/en/latest/udsoncan/client.html#configuration` for more info.
+            * type `ignore_all_zero_dtc`: bool
+
+            * param `server_address_format`:
+                The MemoryLocation server_address_format is the value to use when none is specified explicitly for methods expecting a parameter of type MemoryLocation.
+            * type `server_address_format`: int
+
+            * param `server_memorysize_format`:
+                The MemoryLocation server_memorysize_format is the value to use when none is specified explicitly for methods expecting a parameter of type MemoryLocation
+            * type `server_memorysize_format`: int
+
+            * param `extended_data_size`:
+                This is the description of all the DTC extended data record sizes.
+                This value is used to decode the server response when requesting a DTC extended data.
+                The value must be specified as follows:
+                    config['extended_data_size'] = {
+                        0x123456 : 45, # Extended data for DTC 0x123456 is 45 bytes long
+                        0x123457 : 23 # Extended data for DTC 0x123457 is 23 bytes long
+                    }
+            * type `extended_data_size`: dict[int] = int
+
+            * param `dtc_snapshot_did_size`:
+                The number of bytes used to encode a data identifier specifically for ReadDTCInformation subfunction reportDTCSnapshotRecordByDTCNumber and reportDTCSnapshotRecordByRecordNumber.
+                The UDS standard does not specify a DID size although all other services expect a DID encoded over 2 bytes (16 bits). Default value of 2
+            * type `dtc_snapshot_did_size`: int
+
+            * param `standard_version`:
+                The standard version to use, valid values are : 2006, 2013, 2020. Default value is 2020
+            * type `standard_version`: int
+
+            * param `request_timeout`:
+                Maximum amount of time in seconds to wait for a response of any kind, positive or negative, after sending a request.
+                After this time is elapsed, a TimeoutException will be raised regardless of other timeouts value or previous client responses.
+                In particular even if the server requests that the client wait, by returning response requestCorrectlyReceived-ResponsePending (0x78), this timeout will still trigger.
+                If you wish to disable this behaviour and have your server wait for as long as it takes for the ECU to finish whatever activity you have requested, set this value to None.
+                Default value of 5
+            * type `request_timeout`: float
+
+            * param `p2_timeout`:
+                Maximum amount of time in seconds to wait for a first response (positive, negative, or NRC 0x78).
+                After this time is elapsed, a TimeoutException will be raised if no response has been received.
+                See ISO 14229-2:2013 (UDS Session Layer Services) for more details. Default value of 1
+            * type `p2_timeout`: float
+
+            * param `p2_star_timeout`:
+                Maximum amount of time in seconds to wait for a response (positive, negative, or NRC0x78) after the reception of a negative response with code 0x78 (requestCorrectlyReceived-ResponsePending).
+                After this time is elapsed, a TimeoutException will be raised if no response has been received.
+                See ISO 14229-2:2013 (UDS Session Layer Services) for more details. Default value of 5
+            * type `p2_star_timeout`: float
+
+            * param `use_server_timing`:
+                When using 2013 standard or above, the server is required to provide its P2 and P2* timing values with a DiagnosticSessionControl request. By setting this parameter to True, the value received from the server will be used.
+                When False, these timing values will be ignored and local configuration timing will be used. Note that no timeout value can exceed the config['request_timeout'] as it is meant to avoid the client from hanging for too long.
+                This parameter has no effect when config['standard_version'] is set to 2006.
+                Default value is True
+            * type `use_server_timing`: bool
         """
-        config = cast(ClientConfig, {
+        self.config = cast(ClientConfig, {
             'exception_on_negative_response': exception_on_negative_response,
             'exception_on_invalid_response': exception_on_invalid_response,
             'exception_on_unexpected_response': exception_on_unexpected_response,
@@ -285,7 +407,6 @@ class UDSKeywords:
             'standard_version': standard_version,  # 2006, 2013, 2020
             'use_server_timing': use_server_timing,
             'extended_data_size': extended_data_size})
-        return config
 
     @keyword("Set UDS Config")
     def set_config(self):
@@ -530,7 +651,17 @@ class UDSKeywords:
         * param data_id_list: The list of DID to be read
         * type data_id_list: int | list[int]
         """
+        SID_RQ = 34 # The request id of read data by identifier
+
+        # Get the did_codec from pdx file
+        did_codec = self.diag_service_db.get_did_codec(SID_RQ)
+
+        # Set it to uds config
+        self.config['data_identifiers'].update(did_codec)
+        self.set_config()
+
         response = self.client.read_data_by_identifier(data_id_list)
+        logger.info(response.service_data.values[data_id_list[0]])
         return response
 
     @keyword("Read DTC Information")
