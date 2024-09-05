@@ -77,8 +77,9 @@ class PDXCodec(DidCodec):
 
     def __len__(self) -> int:
         bit_length = self.service.positive_responses[0].get_static_bit_length()
-        string_len =  (bit_length >> 3) - 3
-        
-        return string_len
+        if bit_length:
+            return (bit_length >> 3) - 3
+        else:
+            raise DidCodec.ReadAllRemainingData
 
 
