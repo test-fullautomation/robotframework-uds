@@ -680,7 +680,8 @@ Requests the server to execute a reset sequence through the ECUReset service.
         self.set_config()
 
         response = self.client.read_data_by_identifier(data_id_list)
-        logger.info(response.service_data.values[data_id_list[0]])
+        for i in range(0, len(data_id_list)):
+            logger.info(response.service_data.values[data_id_list[i]])
         return response
 
     @keyword("Read DTC Information")
