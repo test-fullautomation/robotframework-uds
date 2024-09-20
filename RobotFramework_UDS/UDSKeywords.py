@@ -29,11 +29,6 @@ class UDSDeviceManager:
             return True
         return False
 
-    def is_device_available(self, name):
-        if name in self.uds_device_available:
-            return True
-        return False
-
 class UDSDevice:
     def __init__(self):
         self.name = None
@@ -42,23 +37,16 @@ class UDSDevice:
         self.uds_connector = None
         self.client = None
         self.connector = None
-
-    def is_uds_connector_ready(self):
-        return all(param is not None for param in [self.config, self.uds_connector, self.client])
+        self.available = False
 
 class UDSKeywords:
     def __init__(self):
+        self.uds_device = None
         self.uds_manager = UDSDeviceManager()
-        self.config = default_client_config
-        self.config['data_identifiers'] = {
-            'default' : '>H',                       # Default codec is a struct.pack/unpack string. 16bits little endian
-            # 0xF190 : udsoncan.AsciiCodec(15)      # Codec that read ASCII string. We must tell the length of the string
-            # 0x6330 : DidCodec(diag_service)       # See `get_did_codec` method for more info
-        }
 
     def __device_check(self, device_name):
         if self.uds_manager.is_device_exist(device_name):
-            if self.uds_manager.is_device_available(device_name):
+            if self.uds_manager.uds_device[device_name].available:
                 uds_device = self.uds_manager.uds_device[device_name]
                 return uds_device
             else:
@@ -66,18 +54,30 @@ class UDSKeywords:
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
+    def verify_device_availability(func):
+        def wrapper(*args, **kwargs):
+            if args[0].uds_device is None:
+                args[0].uds_device = __device_check("default")
+
+            return func(*args, **kwargs)
+        return wrapper
+
+    @keyword("Select UDS Device")
+    def select_device_control(self, device_name="default"):
+        self.uds_device = __device_check(device_name)
+        return self.uds_device
+
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, device_name="default", config=default_client_config, close_connection=False):
         if self.uds_manager.is_device_exist(device_name):
-            uds_device = self.uds_manager.uds_device[device_name]
-            if self.uds_manager.is_device_available(device_name):
+            if self.uds_manager.uds_device[device_name].available:
                 logger.info(f"Device {device_name} is available to be use.")
             else:
-                uds_device.config = config
-                uds_device.uds_connector = DoIPClientUDSConnector(uds_device.connector, device_name, close_connection)
-                uds_device.client = Client(uds_device.uds_connector, uds_device.config)
-
-                self.uds_manager.uds_device_available.append(device_name)
+                self.uds_device = self.uds_manager.uds_device[device_name]
+                self.uds_device.config = config
+                self.uds_device.uds_connector = DoIPClientUDSConnector(self.uds_device.connector, device_name, close_connection)
+                self.uds_device.client = Client(self.uds_device.uds_connector, self.uds_device.config)
+                self.uds_device.available = True
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
@@ -204,7 +204,8 @@ class UDSKeywords:
 
 
     @keyword("Load PDX")
-    def load_pdx(self, pdx_file, variant, device_name="default"):
+    @verify_device_availability
+    def load_pdx(self, pdx_file, variant):
         """
 **Description:**
     Load PDX
@@ -215,11 +216,7 @@ class UDSKeywords:
     * param ``variant``:
     * type ``variant``: str
         """
-        if self.uds_manager.is_device_exist(device_name):
-            uds_device = self.uds_manager.uds_device[device_name]
-            uds_device.diag_service_db = DiagnosticServices(pdx_file, variant)
-        else:
-            raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
+        self.uds_device.diag_service_db = DiagnosticServices(pdx_file, variant)
 
     @keyword("Build payload")
     def build_payload(self, diag_service, parameters=None):
@@ -470,32 +467,33 @@ class UDSKeywords:
         return config
 
     @keyword("Set UDS Config")
-    def set_config(self, config, device_name="default"):
+    @verify_device_availability
+    def set_config(self, config):
         '''
 Set UDS config
         '''
-        uds_device = self.__device_check(device_name)
-        uds_device.client.set_configs(config)
+        self.uds_device.client.set_configs(config)
 
     @keyword("Open uds connection")
-    def connect(self, device_name="default"):
+    @verify_device_availability
+    def connect(self):
         '''
 **Description:**
     Open uds connection
         '''
-        uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.open()
+        self.uds_device.uds_connector.open()
 
     @keyword("Close UDS Connection")
-    def disconnect(self, device_name="default"):
+    @verify_device_availability
+    def disconnect(self):
         '''
 **Description:**
     Close uds connection
         '''
-        uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.close()
+        self.uds_device.uds_connector.close()
 
     @keyword("Access Timing Parameter")
+    @verify_device_availability
     def access_timing_parameter(self, access_type: int, timing_param_record: Optional[bytes] = None, device_name="default"):
         """
 **Description:**
@@ -513,12 +511,12 @@ Set UDS config
     * param ``timing_param_record`` (optional): The parameters data. Specific to each ECU.
     * type ``timing_param_record`` bytes
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.access_timing_parameter(access_type, timing_param_record)
+        response = self.uds_device.client.access_timing_parameter(access_type, timing_param_record)
         return response
 
     @keyword("Clear Diagnostic Information")
-    def clear_dianostic_infomation(self, group: int = 0xFFFFFF, memory_selection: Optional[int] = None, device_name="default"):
+    @verify_device_availability
+    def clear_dianostic_infomation(self, group: int = 0xFFFFFF, memory_selection: Optional[int] = None):
         """
 **Description:**
     Requests the server to clear its active Diagnostic Trouble Codes.
@@ -534,12 +532,12 @@ Set UDS config
         Only added to the request payload when different from None. Default : None
     * type ``memory_selection``: int
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.clear_dtc(group, memory_selection)
+        response = self.uds_device.client.clear_dtc(group, memory_selection)
         return response
 
     @keyword("Communication Control")
-    def communication_control(self, control_type: int, communication_type: Union[int, bytes, CommunicationType], node_id: Optional[int] = None, device_name="default"):
+    @verify_device_availability
+    def communication_control(self, control_type: int, communication_type: Union[int, bytes, CommunicationType], node_id: Optional[int] = None):
         """
 **Description:**
     Switches the transmission or reception of certain messages on/off with CommunicationControl service.
@@ -569,12 +567,12 @@ Set UDS config
 
     * type ``node_id``: int
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.communication_control(control_type, communication_type, node_id)
+        response = self.uds_device.client.communication_control(control_type, communication_type, node_id)
         return response
 
     @keyword("Control DTC Setting")
-    def control_dtc_setting(self, setting_type: int, data: Optional[bytes] = None, device_name="default"):
+    @verify_device_availability
+    def control_dtc_setting(self, setting_type: int, data: Optional[bytes] = None):
         """
 **Description:**
     Controls some settings related to the Diagnostic Trouble Codes by sending a ControlDTCSetting service request.
@@ -592,12 +590,12 @@ Set UDS config
     * param ``data`` (optional): Optional additional data sent with the request called `DTCSettingControlOptionRecord`
     * type ``data``: bytes
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.control_dtc_setting(setting_type, data)
+        response = self.uds_device.client.control_dtc_setting(setting_type, data)
         return response
 
     @keyword("Diagnostic Session Control")
-    def diagnostic_session_control(self, session_type, device_name="default"):
+    @verify_device_availability
+    def diagnostic_session_control(self, session_type):
         """
 **Description:**
     Requests the server to change the diagnostic session with a DiagnosticSessionControl service request.
@@ -611,15 +609,14 @@ Set UDS config
 
     * type ``newsession``: int
         """
-        uds_device = self.__device_check(device_name)
-
         if isinstance(session_type, str):
             session_type = int(session_type)
-        response = uds_device.client.change_session(session_type)
+        response = self.uds_device.client.change_session(session_type)
         return response
 
     @keyword("Dynamically Define Data Identifier")
-    def dynamically_define_did(self, did: int, did_definition: Union[DynamicDidDefinition, MemoryLocation], device_name="default"):
+    @verify_device_availability
+    def dynamically_define_did(self, did: int, did_definition: Union[DynamicDidDefinition, MemoryLocation]):
         """
 **Description:**
     Defines a dynamically defined DID.
@@ -631,12 +628,12 @@ Set UDS config
         If a ``MemoryLocation<MemoryLocation>`` object is given, definition will automatically be by memory address
     * type ``did_definition``: ``DynamicDidDefinition<DynamicDidDefinition>`` or ``MemoryLocation<MemoryLocation``
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.dynamically_define_did(did, did_definition)
+        response = self.uds_device.client.dynamically_define_did(did, did_definition)
         return response
 
     @keyword("ECU Reset")
-    def ecu_reset(self, reset_type: int, device_name="default"):
+    @verify_device_availability
+    def ecu_reset(self, reset_type: int):
         """
 Requests the server to execute a reset sequence through the ECUReset service.
 
@@ -649,24 +646,23 @@ Requests the server to execute a reset sequence through the ECUReset service.
 
     * type reset_type: int
         """
-        uds_device = self.__device_check(device_name)
         response = None
         if isinstance(reset_type, str):
             reset_type = int(reset_type)
 
         try:
-            response = uds_device.client.ecu_reset(reset_type)
+            response = self.uds_device.client.ecu_reset(reset_type)
         except Exception as e:
             BuiltIn().fail(f"Fail to send a ECU Reset request. Reason: {e}")
         return response
 
     @keyword("Input Output Control By Identifier")
+    @verify_device_availability
     def io_control(self,
                    did: int,
                    control_param: Optional[int] = None,
                    values: Optional[Union[List[Any], Dict[str, Any], IOValues]] = None,
-                   masks: Optional[Union[List[str], Dict[str, bool], IOMasks, bool]] = None,
-                   device_name="default"):
+                   masks: Optional[Union[List[str], Dict[str, bool], IOMasks, bool]] = None):
         """
 **Description:**
     Substitutes the value of an input signal or overrides the state of an output by sending a InputOutputControlByIdentifier service request.
@@ -699,12 +695,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
                 - A boolean value to set all masks to the same value.
     * type masks: list, dict, IOMask<IOMask>, bool
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.io_control(did, control_param, values, masks)
+        response = self.uds_device.client.io_control(did, control_param, values, masks)
         return response
 
     @keyword("Link Control")
-    def link_control(self, control_type: int, baudrate: Optional[Baudrate] = None, device_name="default"):
+    @verify_device_availability
+    def link_control(self, control_type: int, baudrate: Optional[Baudrate] = None):
         """
 **Description:**
     Controls the communication baudrate by sending a LinkControl service request.
@@ -720,12 +716,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``baudrate`` (required): Required baudrate value when ``control_type`` is either ``verifyBaudrateTransitionWithFixedBaudrate`` (1) or ``verifyBaudrateTransitionWithSpecificBaudrate`` (2)
     * type ``baudrate``: Baudrate <Baudrate>
         """
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.link_control(control_type, baudrate)
+        response = self.uds_device.client.link_control(control_type, baudrate)
         return response
 
     @keyword("Read Data By Identifier")
-    def read_data_by_identifier(self, data_id_list: Union[int, List[int]], device_name="default"):
+    @verify_device_availability
+    def read_data_by_identifier(self, data_id_list: Union[int, List[int]]):
         """
 **Description:**
     Requests a value associated with a data identifier (DID) through the ReadDataByIdentifier service.
@@ -735,23 +731,22 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param data_id_list: The list of DID to be read
     * type data_id_list: int | list[int]
         """
-        uds_device = self.__device_check(device_name)
-
         SID_RQ = 34 # The request id of read data by identifier
 
         # Get the did_codec from pdx file
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        did_codec = self.uds_device.diag_service_db.get_did_codec(SID_RQ)
 
         # Set it to uds config
-        uds_device.config['data_identifiers'].update(did_codec)
-        uds_device.set_config()
+        self.uds_device.config['data_identifiers'].update(did_codec)
+        self.set_config(self.uds_device.config)
 
-        response = uds_device.client.read_data_by_identifier(data_id_list)
+        response = self.uds_device.client.read_data_by_identifier(data_id_list)
         for i in range(0, len(data_id_list)):
             logger.info(response.service_data.values[data_id_list[i]])
         return response
 
     @keyword("Read DTC Information")
+    @verify_device_availability
     def read_dtc_information(self,
                              subfunction: int,
                              status_mask: Optional[int] = None,
@@ -760,17 +755,16 @@ Requests the server to execute a reset sequence through the ECUReset service.
                              snapshot_record_number: Optional[int] = None,
                              extended_data_record_number: Optional[int] = None,
                              extended_data_size: Optional[int] = None,
-                             memory_selection: Optional[int] = None,
-                             device_name="default"):
+                             memory_selection: Optional[int] = None):
         '''
             Update later
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
+        response = self.uds_device.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
         return response
 
     @keyword("Read Memory By Address")
-    def read_memory_by_address(self, memory_location: MemoryLocation, device_name="default"):
+    @verify_device_availability
+    def read_memory_by_address(self, memory_location: MemoryLocation):
         '''
 **Description:**
     Reads a block of memory from the server by sending a ReadMemoryByAddress service request.
@@ -778,12 +772,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``memory_location`` (required): The address and the size of the memory block to read.
     * type ``memory_location``: MemoryLocation <MemoryLocation>
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.read_memory_by_address(memory_location)
+        response = self.uds_device.client.read_memory_by_address(memory_location)
         return response
 
     @keyword("Request Download")
-    def request_download(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None, device_name="default"):
+    @verify_device_availability
+    def request_download(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
         '''
 **Description:**
     Informs the server that the client wants to initiate a download from the client to the server by sending a RequestDownload service request.
@@ -798,12 +792,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
 
     * type dfi: DataFormatIdentifier <DataFormatIdentifier>
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_download(memory_location, dfi)
+        response = self.uds_device.client.request_download(memory_location, dfi)
         return response
     
     @keyword("Request Transfer Exit")
-    def request_transfer_exit(self, data: Optional[bytes] = None, device_name="default"):
+    @verify_device_availability
+    def request_transfer_exit(self, data: Optional[bytes] = None):
         '''
 **Description:**
     Informs the server that the client wants to stop the data transfer by sending a RequestTransferExit service request.
@@ -811,12 +805,11 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``data`` (optional): Optional additional data to send to the server
     * type ``data``: bytes
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_transfer_exit(data)
+        response = self.uds_device.client.request_transfer_exit(data)
         return response
 
     @keyword("Request Upload")
-    def request_upload(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None, device_name="default"):
+    def request_upload(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
         '''
 **Description:**
     Informs the server that the client wants to initiate an upload from the server to the client by sending a RequestUpload<RequestUpload service request.
@@ -831,12 +824,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * type dfi: DataFormatIdentifier
 
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_upload(memory_location, dfi)
+        response = self.uds_device.client.request_upload(memory_location, dfi)
         return response
 
     @keyword("Routine Control")
-    def routine_control(self, routine_id: int, control_type: int, data: Optional[bytes] = None, device_name="default"):
+    @verify_device_availability
+    def routine_control(self, routine_id: int, control_type: int, data: Optional[bytes] = None):
         """
 **Description:**
     Sends a generic request for the RoutineControl service
@@ -855,9 +848,9 @@ Requests the server to execute a reset sequence through the ECUReset service.
             * param ``data`` (optional): Optional additional data to give to the server
             * type ``data`` bytes
         """
-        uds_device = self.__device_check(device_name)
+        response = None
         try:
-            response = uds_device.client.routine_control(routine_id, control_type, data)
+            response = self.uds_device.client.routine_control(routine_id, control_type, data)
         except Exception as e:
             BuiltIn().fail(f"Fail to send a Routine Control request. Reason: {e}")
         return response
@@ -879,21 +872,21 @@ Requests the server to execute a reset sequence through the ECUReset service.
         return response
 
     @keyword("Tester Present")
-    def tester_present(self, device_name = "default"):
+    @verify_device_availability
+    def tester_present(self):
         '''
 **Description:**
     Sends a TesterPresent request to keep the session active.
         '''
-        uds_device = self.__device_check(device_name)
         response = None
         try:
-            response = uds_device.client.tester_present()
+            response = self.uds_device.client.tester_present()
         except Exception as e:
             BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
         return response
 
     @keyword("Transfer Data")
-    def transfer_data(self, sequence_number: int, data: Optional[bytes] = None, device_name = "default"):
+    def transfer_data(self, sequence_number: int, data: Optional[bytes] = None):
         '''
 **Description:**
     Transfer a block of data to/from the client to/from the server by sending a TransferData service request and returning the server response.
@@ -905,12 +898,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``data`` (optional): Optional additional data to send to the server
     * type ``data``: bytes
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.transfer_data(sequence_number, data)
+        response = self.uds_device.client.transfer_data(sequence_number, data)
         return response
     
     @keyword("Write Data By Identifier")
-    def write_data_by_identifier(self, did: int, value: Any, device_name="default"):
+    @verify_device_availability
+    def write_data_by_identifier(self, did: int, value: Any):
         '''
 **Description:**
     Requests to write a value associated with a data identifier (DID) through the WriteDataByIdentifier service.
@@ -921,12 +914,12 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param value: Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
     * type value: int
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.write_data_by_identifier(did, value)
+        response = self.uds_device.client.write_data_by_identifier(did, value)
         return response
 
     @keyword("Write Memory By Address")
-    def write_memory_by_address(self, memory_location: MemoryLocation, data: bytes, device_name="default"):
+    @verify_device_availability
+    def write_memory_by_address(self, memory_location: MemoryLocation, data: bytes):
         '''
 **Description:**
     Writes a block of memory in the server by sending a WriteMemoryByAddress service request.
@@ -937,8 +930,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``data`` (required): The data to write into memory.
     * type ``data``: bytes
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.write_memory_by_address(memory_location, data)
+        response = self.uds_device.client.write_memory_by_address(memory_location, data)
         return response
 
     @keyword("Request File Transfer")
@@ -946,8 +938,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
                               moop: int,
                               path: str = '',
                               dfi: Optional[DataFormatIdentifier] = None,
-                              filesize: Optional[Union[int, Filesize]] = None,
-                              device_name="default"):
+                              filesize: Optional[Union[int, Filesize]] = None):
         
         '''
 **Parameters:**
@@ -990,11 +981,11 @@ Requests the server to execute a reset sequence through the ECUReset service.
 
     * type ``filesize``: int | Filesize
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_file_transfer(moop, path, dfi, filesize)
+        response = self.uds_device.client.request_file_transfer(moop, path, dfi, filesize)
         return response
 
     @keyword("Authentication")
+    @verify_device_availability
     def authentication(self,
                        authentication_task: int,
                        communication_configuration: Optional[int] = None,
@@ -1005,8 +996,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
                        certificate_data: Optional[bytes] = None,
                        proof_of_ownership_client: Optional[bytes] = None,
                        ephemeral_public_key_client: Optional[bytes] = None,
-                       additional_parameter: Optional[bytes] = None,
-                       device_name="default"):
+                       additional_parameter: Optional[bytes] = None):
         '''
 **Description:**
     Sends an Authentication request introduced in 2020 version of ISO-14229-1. You can also use the helper functions to send each authentication task (sub function).
@@ -1066,8 +1056,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``additional_parameter`` (optional): Optional additional parameter is provided to the server if the server indicates as neededAdditionalParameter.
     * type ``additional_parameter``: bytes
         '''
-        uds_device = self.__device_check(device_name)
-        response = uds_device.client.authentication(authentication_task,
+        response = self.uds_device.client.authentication(authentication_task,
                                               communication_configuration,
                                               certificate_client,
                                               challenge_client,
@@ -1080,7 +1069,8 @@ Requests the server to execute a reset sequence through the ECUReset service.
         return response
 
     @keyword("Routine Control By Name")
-    def routine_control_by_name(self, routine_name, data = None, device_name="default"):
+    @verify_device_availability
+    def routine_control_by_name(self, routine_name, data = None):
         """
 **Description:**
     Sends a request for the RoutineControl service by routine name
@@ -1100,8 +1090,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``data`` (optional): Optional additional data to give to the server
     * type ``data`` bytes
         """
-        uds_device = self.__device_check(device_name)
-        diag_services = uds_device.diag_service_db.get_data_by_name([routine_name])
+        diag_services = self.uds_device.diag_service_db.get_data_by_name([routine_name])
         control_type = diag_services[0].request.parameters[1].coded_value
         if control_type != 1 and control_type != 2:
             control_type = 3
@@ -1111,7 +1100,8 @@ Requests the server to execute a reset sequence through the ECUReset service.
         return response
 
     @keyword("Read Data By Name")
-    def read_data_by_name(self, service_name_list = [], parameters = None, device_name="default"):
+    @verify_device_availability
+    def read_data_by_name(self, service_name_list = [], parameters = None):
         """
 **Description:**
     Get diagnostic service list by list of service name
@@ -1122,11 +1112,10 @@ Requests the server to execute a reset sequence through the ECUReset service.
     * param ``parameters``: parameter list
     * type ``parameters``: list[]
         """
-        uds_device = self.__device_check(device_name)
         diag_service_list = []
         data_id_list = []
 
-        diag_service_list = uds_device.diag_service_db.get_data_by_name(service_name_list)
+        diag_service_list = self.uds_device.diag_service_db.get_data_by_name(service_name_list)
         for diag_service in diag_service_list:
             data_id = diag_service.request.parameters[1].coded_value
             data_id_list.append(data_id)
@@ -1134,7 +1123,8 @@ Requests the server to execute a reset sequence through the ECUReset service.
         return response
 
     @keyword("Get encoded request message")
-    def get_encoded_request_message(self, diag_service_list, parameters=None, device_name="default"):
+    @verify_device_availability
+    def get_encoded_request_message(self, diag_service_list, parameters=None):
         """
             **Description:**
                 Get diagnostic service encoded request list (hex value)
@@ -1145,7 +1135,6 @@ Requests the server to execute a reset sequence through the ECUReset service.
                 * param ``parameters``: parameter list
                 * type ``parameters``: list[]
         """
-        uds_device = self.__device_check(device_name)
         uds_list = []
-        uds_list - uds_device.diag_service_db.get_encoded_request_message(diag_service_list, parameters)
+        uds_list = self.uds_device.diag_service_db.get_encoded_request_message(diag_service_list, parameters)
         return uds_list
