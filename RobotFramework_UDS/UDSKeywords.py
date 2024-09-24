@@ -57,14 +57,18 @@ class UDSKeywords:
     def verify_device_availability(func):
         def wrapper(*args, **kwargs):
             if args[0].uds_device is None:
-                args[0].uds_device = __device_check("default")
+                args[0].uds_device = args[0].__device_check("default")
 
             return func(*args, **kwargs)
         return wrapper
 
+    # def verify_device_availability(self):
+    #     if self.uds_device is None:
+    #         args[0].uds_device = args[0].__device_check("default")
+
     @keyword("Select UDS Device")
     def select_device_control(self, device_name="default"):
-        self.uds_device = __device_check(device_name)
+        self.uds_device = self.__device_check(device_name)
         return self.uds_device
 
     @keyword("Connect UDS Connector")
@@ -202,7 +206,6 @@ class UDSKeywords:
         uds_device.connector = connector
         self.uds_manager.uds_device[device_name] = uds_device
 
-
     @keyword("Load PDX")
     @verify_device_availability
     def load_pdx(self, pdx_file, variant):
@@ -216,6 +219,7 @@ class UDSKeywords:
     * param ``variant``:
     * type ``variant``: str
         """
+        self.verify_device_availability()
         self.uds_device.diag_service_db = DiagnosticServices(pdx_file, variant)
 
     @keyword("Build payload")
