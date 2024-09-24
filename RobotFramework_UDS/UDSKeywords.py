@@ -1395,7 +1395,7 @@ Sends a request for the RoutineControl service by routine name.
             control_type = 3
         routine_id = diag_services[0].request.parameters[2].coded_value
         
-        response = self.routine_control(routine_id, control_type, data)
+        response = self.routine_control(routine_id, control_type, data, device_name)
         return response
 
     @keyword("Read Data By Name")
@@ -1425,7 +1425,7 @@ Get diagnostic service list by a list of service names.
         for diag_service in diag_service_list:
             data_id = diag_service.request.parameters[1].coded_value
             data_id_list.append(data_id)
-        response = self.read_data_by_identifier(data_id_list)
+        response = self.read_data_by_identifier(data_id_list, device_name)
         return response
 
     @keyword("Get encoded request message")
