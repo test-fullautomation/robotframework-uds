@@ -56,7 +56,7 @@ class UDSKeywords:
 
     def verify_device_availability(self):
         if self.uds_device is None:
-            self.uds_device = self.__device_check("default")
+            raise ValueError(f"Device was not connect uds connector. Please use keyword \"Connect UDS Connector\" to connect.")
 
     @keyword("Select UDS Device")
     def select_device_control(self, device_name="default"):
@@ -201,14 +201,17 @@ class UDSKeywords:
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant):
         """
-**Description:**
-    Load PDX
-**Parameters:**
-    * param ``pdx_file``: pdx file path
-    * type ``pdx_file``: st
+Load PDX
+**Arguments:**
+* ``pdx_file``
 
-    * param ``variant``:
-    * type ``variant``: str
+  / *Type*: str /
+
+  PDX file path
+
+* ``variant``
+
+  / *Type*: str /
         """
         self.verify_device_availability()
         self.uds_device.diag_service_db = DiagnosticServices(pdx_file, variant)
@@ -262,14 +265,29 @@ class UDSKeywords:
     @keyword("Validate response content")
     def validate_content_response(self, response, expected_data=None):
         """
-**Description:**
-    Validates the content of a UDS response
-**Parameters:**
-    * param `response`: The UDS response object to validate.
-    * type `response`: udsoncan.Response<Response>
+This method validates the content of a UDS response.
 
-    * param `expected_data`: The expected data (optional) to be matched within the response.
-    * type `expected_data`: byte
+**Arguments:**
+
+* ``response``
+
+  / *Condition*: required / *Type*: udsoncan.Response<Response> /
+
+  The UDS response object to validate.
+
+* ``expected_data``
+
+  / *Condition*: optional / *Type*: byte /
+
+  The expected data to be matched within the response.
+
+**Returns:**
+
+* ``result``
+
+  / *Type*: bool /
+
+  Returns `True` if `expected_data` matches `response.data`, otherwise returns `False`.
         """
         if response is None:
             return False
@@ -464,7 +482,19 @@ class UDSKeywords:
     @keyword("Set UDS Config")
     def set_config(self, config):
         '''
-Set UDS config
+This method sets the UDS config.
+
+**Arguments:**
+
+* No specific arguments for this method.
+
+**Returns:**
+
+* ``config``
+
+  / *Type*: Configuration /
+
+  Returns the new UDS configuration created by `create_configure` or the default config if none is provided.
         '''
         self.verify_device_availability()
         self.uds_device.client.set_configs(config)
@@ -472,8 +502,11 @@ Set UDS config
     @keyword("Open uds connection")
     def connect(self):
         '''
-**Description:**
-    Open uds connection
+Opens a UDS connection.
+
+**Arguments:**
+
+* No specific arguments for this method.
         '''
         self.verify_device_availability()
         self.uds_device.uds_connector.open()
@@ -481,8 +514,11 @@ Set UDS config
     @keyword("Close UDS Connection")
     def disconnect(self):
         '''
-**Description:**
-    Close uds connection
+Closes a UDS connection.
+
+**Arguments:**
+
+* No specific arguments for this method.
         '''
         self.verify_device_availability()
         self.uds_device.uds_connector.close()
@@ -490,20 +526,34 @@ Set UDS config
     @keyword("Access Timing Parameter")
     def access_timing_parameter(self, access_type: int, timing_param_record: Optional[bytes] = None, device_name="default"):
         """
-**Description:**
-    Sends a generic request for AccessTimingParameter service
-**Parameters:**
-    * param ``access_type`` (required): The service subfunction
+Sends a generic request for AccessTimingParameter service.
 
-        - readExtendedTimingParameterSet      = 1
-        - setTimingParametersToDefaultValues  = 2
-        - readCurrentlyActiveTimingParameters = 3
-        - setTimingParametersToGivenValues    = 4
+**Arguments:**
 
-    * type ``access_type`` in
+* ``access_type``
 
-    * param ``timing_param_record`` (optional): The parameters data. Specific to each ECU.
-    * type ``timing_param_record`` bytes
+  / *Condition*: required / *Type*: int /
+
+  The service subfunction:
+
+  - readExtendedTimingParameterSet      = 1
+  - setTimingParametersToDefaultValues  = 2
+  - readCurrentlyActiveTimingParameters = 3
+  - setTimingParametersToGivenValues    = 4
+
+* ``timing_param_record``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  The parameters data. Specific to each ECU.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the AccessTimingParameter service request.
         """
         self.verify_device_availability()
         response = self.uds_device.client.access_timing_parameter(access_type, timing_param_record)
@@ -512,19 +562,32 @@ Set UDS config
     @keyword("Clear Dianostic Information")
     def clear_dianostic_infomation(self, group: int = 0xFFFFFF, memory_selection: Optional[int] = None):
         """
-**Description:**
-    Requests the server to clear its active Diagnostic Trouble Codes.
-**Parameters:**
-    * param ``group``: The group of DTCs to clear. It may refer to Powertrain DTCs, Chassis DTCs, etc. Values are defined by the ECU manufacturer except for two specific value
+Requests the server to clear its active Diagnostic Trouble Codes.
 
-        - ``0x000000`` : Emissions-related systems
-        - ``0xFFFFFF`` : All DTCs
+**Arguments:**
 
-    * type ``group``: in
+* ``group``
 
-    * param memory_selection: MemorySelection byte (0-0xFF). This value is user defined and introduced in 2020 version of ISO-14229-1.
-        Only added to the request payload when different from None. Default : None
-    * type ``memory_selection``: int
+  / *Type*: int /
+
+  The group of DTCs to clear. It may refer to Powertrain DTCs, Chassis DTCs, etc. Values are defined by the ECU manufacturer except for two specific values:
+
+  - ``0x000000`` : Emissions-related systems
+  - ``0xFFFFFF`` : All DTCs
+
+* ``memory_selection``
+
+  / *Condition*: optional / *Type*: int /
+
+  MemorySelection byte (0-0xFF). This value is user-defined and introduced in the 2020 version of ISO-14229-1. Only added to the request payload when different from None. Default: None.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the server after attempting to clear the active Diagnostic Trouble Codes.
         """
         self.verify_device_availability()
         response = self.uds_device.client.clear_dtc(group, memory_selection)
@@ -533,33 +596,42 @@ Set UDS config
     @keyword("Communication Control")
     def communication_control(self, control_type: int, communication_type: Union[int, bytes, CommunicationType], node_id: Optional[int] = None):
         """
-**Description:**
-    Switches the transmission or reception of certain messages on/off with CommunicationControl service.
-**Parameter:**
-    * param ``control_type`` (required): The action to request such as enabling or disabling some messages. This value can also be ECU manufacturer-specifi
+Switches the transmission or reception of certain messages on/off with CommunicationControl service.
 
-        - enableRxAndTx                                      = 0
-        - enableRxAndDisableTx                               = 1
-        - disableRxAndEnableTx                               = 2
-        - disableRxAndTx                                     = 3
-        - enableRxAndDisableTxWithEnhancedAddressInformation = 4
-        - enableRxAndTxWithEnhancedAddressInformation        = 5
+**Arguments:**
 
-    * type ``control_type``: int
+* ``control_type``
 
-    * param ``communication_type`` (required): Indicates what section of the network and the type of message that should be affected by the command. Refer to CommunicationType<CommunicationType for more details. If an `integer` or a `bytes` is given, the value will be decoded to create the required CommunicationType<CommunicationType object
-    * type communication_type: CommunicationType<CommunicationType>, bytes, int.
+  / *Condition*: required / *Type*: int /
 
-    * param ``node_id`` (optional):
+  The action to request such as enabling or disabling some messages. This value can also be ECU manufacturer-specific:
 
-    DTC memory identifier (nodeIdentificationNumber).
-    This value is user defined and introduced in 2013 version of ISO-14229-1.
-    Possible only when control type is ``enableRxAndDisableTxWithEnhancedAddressInformation`` or ``enableRxAndTxWithEnhancedAddressInformation``
-    Only added to the request payload when different from None.
+  - enableRxAndTx                                      = 0
+  - enableRxAndDisableTx                               = 1
+  - disableRxAndEnableTx                               = 2
+  - disableRxAndTx                                     = 3
+  - enableRxAndDisableTxWithEnhancedAddressInformation = 4
+  - enableRxAndTxWithEnhancedAddressInformation        = 5
 
-    Default : None
+* ``communication_type``
 
-    * type ``node_id``: int
+  / *Condition*: required / *Type*: CommunicationType<CommunicationType>, bytes, int /
+
+  Indicates what section of the network and the type of message that should be affected by the command. Refer to CommunicationType<CommunicationType> for more details. If an `integer` or `bytes` is given, the value will be decoded to create the required CommunicationType<CommunicationType> object.
+
+* ``node_id``
+
+  / *Condition*: optional / *Type*: int /
+
+  DTC memory identifier (nodeIdentificationNumber). This value is user-defined and introduced in the 2013 version of ISO-14229-1. Possible only when control type is ``enableRxAndDisableTxWithEnhancedAddressInformation`` or ``enableRxAndTxWithEnhancedAddressInformation``. Only added to the request payload when different from None. Default: None.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the CommunicationControl service request.
         """
         self.verify_device_availability()
         response = self.uds_device.client.communication_control(control_type, communication_type, node_id)
@@ -568,21 +640,35 @@ Set UDS config
     @keyword("Control DTC Setting")
     def control_dtc_setting(self, setting_type: int, data: Optional[bytes] = None):
         """
-**Description:**
-    Controls some settings related to the Diagnostic Trouble Codes by sending a ControlDTCSetting service request.
-    It can enable/disable some DTCs or perform some ECU specific configuration.
-**Paramters:**
-    * param ``setting_type`` (required): Allowed values are from 0 to 0x7F.
+Controls some settings related to the Diagnostic Trouble Codes by sending a ControlDTCSetting service request.
+It can enable/disable some DTCs or perform some ECU-specific configuration.
 
-        - on  = 1
-        - off = 2
-        - vehicleManufacturerSpecific = (0x40, 0x5F)  # To be able to print textual name for logging only.
-        - systemSupplierSpecific      = (0x60, 0x7E)  # To be able to print textual name for logging only
+**Arguments:**
 
-    * type ``setting_type``: in
+* ``setting_type``
 
-    * param ``data`` (optional): Optional additional data sent with the request called `DTCSettingControlOptionRecord`
-    * type ``data``: bytes
+  / *Condition*: required / *Type*: int /
+
+  Allowed values are from 0 to 0x7F:
+
+  - on  = 1
+  - off = 2
+  - vehicleManufacturerSpecific = (0x40, 0x5F)  # For logging purposes only.
+  - systemSupplierSpecific      = (0x60, 0x7E)  # For logging purposes only.
+
+* ``data``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Optional additional data sent with the request called `DTCSettingControlOptionRecord`.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the ControlDTCSetting service request.
         """
         self.verify_device_availability()
         response = self.uds_device.client.control_dtc_setting(setting_type, data)
@@ -591,17 +677,28 @@ Set UDS config
     @keyword("Diagnostic Session Control")
     def diagnostic_session_control(self, session_type):
         """
-**Description:**
-    Requests the server to change the diagnostic session with a DiagnosticSessionControl service request.
-**Parameters:**
-    * param ``newsession`` (required): The session to try to switch.
+Requests the server to change the diagnostic session with a DiagnosticSessionControl service request.
 
-        - defaultSession                = 1
-        - programmingSession            = 2
-        - extendedDiagnosticSession     = 3
-        - safetySystemDiagnosticSession = 4
+**Arguments:**
 
-    * type ``newsession``: int
+* ``newsession``
+
+  / *Condition*: required / *Type*: int /
+
+  The session to try to switch:
+
+  - defaultSession                = 1
+  - programmingSession            = 2
+  - extendedDiagnosticSession     = 3
+  - safetySystemDiagnosticSession = 4
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the DiagnosticSessionControl service request.
         """
         self.verify_device_availability()
         if isinstance(session_type, str):
@@ -612,15 +709,29 @@ Set UDS config
     @keyword("Dynamically Define Data Identifier")
     def dynamically_define_did(self, did: int, did_definition: Union[DynamicDidDefinition, MemoryLocation]):
         """
-**Description:**
-    Defines a dynamically defined DID.
-**Parameters:**
-    * param ``did``: The data identifier to define.
-    * type ``did``: int
+Defines a dynamically defined DID.
 
-    * param ``did_definition``: The definition of the DID. Can be defined by source DID or memory address.
-        If a ``MemoryLocation<MemoryLocation>`` object is given, definition will automatically be by memory address
-    * type ``did_definition``: ``DynamicDidDefinition<DynamicDidDefinition>`` or ``MemoryLocation<MemoryLocation``
+**Arguments:**
+
+* ``did``
+
+  / *Type*: int /
+
+  The data identifier to define.
+
+* ``did_definition``
+
+  / *Type*: DynamicDidDefinition<DynamicDidDefinition> or MemoryLocation<MemoryLocation> /
+
+  The definition of the DID. Can be defined by source DID or memory address. If a ``MemoryLocation<MemoryLocation>`` object is given, the definition will automatically be by memory address.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the request to define the dynamically defined DID.
         """
         self.verify_device_availability()
         response = self.uds_device.client.dynamically_define_did(did, did_definition)
@@ -631,14 +742,27 @@ Set UDS config
         """
 Requests the server to execute a reset sequence through the ECUReset service.
 
-    * param ``reset_type`` (required): The type of reset to perform.
-        - hardReset                 = 1
-        - keyOffOnReset             = 2
-        - softReset                 = 3
-        - enableRapidPowerShutDown  = 4
-        - disableRapidPowerShutDown = 5
+**Arguments:**
 
-    * type reset_type: int
+* ``reset_type``
+
+  / *Condition*: required / *Type*: int /
+
+  The type of reset to perform:
+
+  - hardReset                 = 1
+  - keyOffOnReset             = 2
+  - softReset                 = 3
+  - enableRapidPowerShutDown  = 4
+  - disableRapidPowerShutDown = 5
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the ECUReset service request.
         """
         self.verify_device_availability()
         response = None
@@ -658,36 +782,55 @@ Requests the server to execute a reset sequence through the ECUReset service.
                    values: Optional[Union[List[Any], Dict[str, Any], IOValues]] = None,
                    masks: Optional[Union[List[str], Dict[str, bool], IOMasks, bool]] = None):
         """
-**Description:**
-    Substitutes the value of an input signal or overrides the state of an output by sending a InputOutputControlByIdentifier service request.
-**Parameters:**
-    * param ``did`` (required): Data identifier to represent the IO
-    * type ``did``: int
+Substitutes the value of an input signal or overrides the state of an output by sending an InputOutputControlByIdentifier service request.
 
-    * param ``control_param`` (optional):
+**Arguments:**
 
-        - returnControlToECU = 0
-        - resetToDefault = 1
-        - freezeCurrentState = 2
-        - shortTermAdjustment = 3
+* ``did``
 
-    * type ``control_param``: int
+  / *Condition*: required / *Type*: int /
 
-    * param ``values`` (optional): Optional values to send to the server. This parameter will be given to DidCodec<DidCodec>.encode() method.
-        It can be:
-                - A list for positional arguments
-                - A dict for named arguments
-                - An instance of IOValues<IOValues> for mixed arguments
+  Data identifier to represent the IO.
 
-    * type ``values``: list, dict, IOValues<IOValues>
+* ``control_param``
 
-    * param masks: Optional mask record for composite values. The mask definition must be included in ``config['input_output']``
-        It can be:
-                - A list naming the bit mask to set
-                - A dict with the mask name as a key and a boolean setting or clearing the mask as the value
-                - An instance of IOMask<IOMask
-                - A boolean value to set all masks to the same value.
-    * type masks: list, dict, IOMask<IOMask>, bool
+  / *Condition*: optional / *Type*: int /
+
+  Control parameters:
+
+  - returnControlToECU = 0
+  - resetToDefault = 1
+  - freezeCurrentState = 2
+  - shortTermAdjustment = 3
+
+* ``values``
+
+  / *Condition*: optional / *Type*: list, dict, IOValues<IOValues> /
+
+  Optional values to send to the server. This parameter will be given to DidCodec<DidCodec>.encode() method. It can be:
+
+  - A list for positional arguments
+  - A dict for named arguments
+  - An instance of IOValues<IOValues> for mixed arguments
+
+* ``masks``
+
+  / *Condition*: optional / *Type*: list, dict, IOMask<IOMask>, bool /
+
+  Optional mask record for composite values. The mask definition must be included in ``config['input_output']``. It can be:
+
+  - A list naming the bit mask to set
+  - A dict with the mask name as a key and a boolean setting or clearing the mask as the value
+  - An instance of IOMask<IOMask>
+  - A boolean value to set all masks to the same value.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the InputOutputControlByIdentifier service request.
         """
         self.verify_device_availability()
         response = self.uds_device.client.io_control(did, control_param, values, masks)
@@ -696,19 +839,33 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Link Control")
     def link_control(self, control_type: int, baudrate: Optional[Baudrate] = None):
         """
-**Description:**
-    Controls the communication baudrate by sending a LinkControl service request.
-**Parameters:**
-    * param ``control_type`` (required): Allowed values are from 0 to 0xFF.
+Controls the communication baudrate by sending a LinkControl service request.
 
-        - verifyBaudrateTransitionWithFixedBaudrate    = 1
-        - verifyBaudrateTransitionWithSpecificBaudrate = 2
-        - transitionBaudrate                           = 3
+**Arguments:**
 
-    * type ``control_type``: int
+* ``control_type``
 
-    * param ``baudrate`` (required): Required baudrate value when ``control_type`` is either ``verifyBaudrateTransitionWithFixedBaudrate`` (1) or ``verifyBaudrateTransitionWithSpecificBaudrate`` (2)
-    * type ``baudrate``: Baudrate <Baudrate>
+  / *Condition*: required / *Type*: int /
+
+  Allowed values are from 0 to 0xFF:
+
+  - verifyBaudrateTransitionWithFixedBaudrate    = 1
+  - verifyBaudrateTransitionWithSpecificBaudrate = 2
+  - transitionBaudrate                           = 3
+
+* ``baudrate``
+
+  / *Condition*: required / *Type*: Baudrate<Baudrate> /
+
+  Required baudrate value when ``control_type`` is either ``verifyBaudrateTransitionWithFixedBaudrate`` (1) or ``verifyBaudrateTransitionWithSpecificBaudrate`` (2).
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the LinkControl service request.
         """
         self.verify_device_availability()
         response = self.uds_device.client.link_control(control_type, baudrate)
@@ -717,13 +874,23 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Read Data By Identifier")
     def read_data_by_identifier(self, data_id_list: Union[int, List[int]]):
         """
-**Description:**
-    Requests a value associated with a data identifier (DID) through the ReadDataByIdentifier service.
-**Parameters:**
-    See ``an example<reading_a_did>`` about how to read a DID
+Requests a value associated with a data identifier (DID) through the ReadDataByIdentifier service.
 
-    * param data_id_list: The list of DID to be read
-    * type data_id_list: int | list[int]
+**Arguments:**
+
+* ``data_id_list``
+
+  / *Type*: int | list[int] /
+
+  The list of DIDs to be read.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the ReadDataByIdentifier service request.
         """
         self.verify_device_availability()
         SID_RQ = 34 # The request id of read data by identifier
@@ -750,75 +917,179 @@ Requests the server to execute a reset sequence through the ECUReset service.
                              extended_data_record_number: Optional[int] = None,
                              extended_data_size: Optional[int] = None,
                              memory_selection: Optional[int] = None):
-        '''
-            Update later
-        '''
+        """
+Performs a ReadDiagnosticInformation service request.
+
+**Arguments:**
+
+* ``subfunction``
+
+  / *Condition*: required / *Type*: int /
+
+  The subfunction for the ReadDiagnosticInformation service.
+
+* ``status_mask``
+
+  / *Condition*: optional / *Type*: int /
+
+  Status mask to filter the diagnostic information.
+
+* ``severity_mask``
+
+  / *Condition*: optional / *Type*: int /
+
+  Severity mask to filter the diagnostic information.
+
+* ``dtc``
+
+  / *Condition*: optional / *Type*: int | Dtc /
+
+  The Diagnostic Trouble Code to query. Can be an integer or a Dtc object.
+
+* ``snapshot_record_number``
+
+  / *Condition*: optional / *Type*: int /
+
+  Snapshot record number to specify the snapshot to read.
+
+* ``extended_data_record_number``
+
+  / *Condition*: optional / *Type*: int /
+
+  Extended data record number to specify the extended data to read.
+
+* ``extended_data_size``
+
+  / *Condition*: optional / *Type*: int /
+
+  Size of the extended data to read.
+
+* ``memory_selection``
+
+  / *Condition*: optional / *Type*: int /
+
+  Memory selection to specify the memory to be accessed.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the ReadDiagnosticInformation service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
         return response
 
     @keyword("Read Memory By Address")
     def read_memory_by_address(self, memory_location: MemoryLocation):
-        '''
-**Description:**
-    Reads a block of memory from the server by sending a ReadMemoryByAddress service request.
-**Parameters:**
-    * param ``memory_location`` (required): The address and the size of the memory block to read.
-    * type ``memory_location``: MemoryLocation <MemoryLocation>
-        '''
+        """
+Reads a block of memory from the server by sending a ReadMemoryByAddress service request.
+
+**Arguments:**
+
+* ``memory_location``
+
+  / *Condition*: required / *Type*: MemoryLocation<MemoryLocation> /
+
+  The address and the size of the memory block to read.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the ReadMemoryByAddress service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.read_memory_by_address(memory_location)
         return response
 
     @keyword("Request Download")
     def request_download(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
-        '''
-**Description:**
-    Informs the server that the client wants to initiate a download from the client to the server by sending a RequestDownload service request.
-**Parameters:**
-    * param ``memory_location`` (required): The address and size of the memory block to be written.
-    * type ``memory_location``: MemoryLocation <MemoryLocation>
+        """
+Informs the server that the client wants to initiate a download from the client to the server by sending a RequestDownload service request.
 
-    * param ``dfi`` (optional):
+**Arguments:**
 
-    Optional defining the compression and encryption scheme of the data.
-    If not specified, the default value of 00 will be used, specifying no encryption and no compression
+* ``memory_location``
 
-    * type dfi: DataFormatIdentifier <DataFormatIdentifier>
-        '''
+  / *Condition*: required / *Type*: MemoryLocation<MemoryLocation> /
+
+  The address and size of the memory block to be written.
+
+* ``dfi``
+
+  / *Condition*: optional / *Type*: DataFormatIdentifier<DataFormatIdentifier> /
+
+  Optional defining the compression and encryption scheme of the data. If not specified, the default value of 00 will be used, specifying no encryption and no compression.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the RequestDownload service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.request_download(memory_location, dfi)
         return response
     
     @keyword("Request Transfer Exit")
     def request_transfer_exit(self, data: Optional[bytes] = None):
-        '''
-**Description:**
-    Informs the server that the client wants to stop the data transfer by sending a RequestTransferExit service request.
-**Parameters:**
-    * param ``data`` (optional): Optional additional data to send to the server
-    * type ``data``: bytes
-        '''
+        """
+Informs the server that the client wants to stop the data transfer by sending a RequestTransferExit service request.
+
+**Arguments:**
+
+* ``data``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Optional additional data to send to the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the RequestTransferExit service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.request_transfer_exit(data)
         return response
 
     @keyword("Request Upload")
     def request_upload(self, memory_location: MemoryLocation, dfi: Optional[DataFormatIdentifier] = None):
-        '''
-**Description:**
-    Informs the server that the client wants to initiate an upload from the server to the client by sending a RequestUpload<RequestUpload service request.
-**Parameters:**
-    * param ``memory_location`` (required): The address and size of the memory block to be written.
-    * type ``memory_location``: MemoryLocation <MemoryLocation>
+        """
+Informs the server that the client wants to initiate an upload from the server to the client by sending a RequestUpload service request.
 
-    * param dfi (optional): Optional defining the compression and encryption scheme of the data.
+**Arguments:**
 
-        If not specified, the default value of 00 will be used, specifying no encryption and no compression
+* ``memory_location``
 
-    * type dfi: DataFormatIdentifier
+  / *Condition*: required / *Type*: MemoryLocation<MemoryLocation> /
 
-        '''
+  The address and size of the memory block to be written.
+
+* ``dfi``
+
+  / *Condition*: optional / *Type*: DataFormatIdentifier<DataFormatIdentifier> /
+
+  Optional defining the compression and encryption scheme of the data. If not specified, the default value of 00 will be used, specifying no encryption and no compression.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the RequestUpload service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.request_upload(memory_location, dfi)
         return response
@@ -826,22 +1097,39 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Routine Control")
     def routine_control(self, routine_id: int, control_type: int, data: Optional[bytes] = None):
         """
-**Description:**
-    Sends a generic request for the RoutineControl service
-**Parameters:**
-    * param ``routine_id`` (required): The 16-bit numerical ID of the routine
-    * type ``routine_id`` int
+Sends a generic request for the RoutineControl service.
 
-    * param ``control_type`` (required): The service subfunction
-    * type ``control_type`` int
-    * valid ``control_type``
+**Arguments:**
 
-        - startRoutine          = 1
-        - stopRoutine           = 2
-        - requestRoutineResults = 3
+* ``routine_id``
 
-            * param ``data`` (optional): Optional additional data to give to the server
-            * type ``data`` bytes
+  / *Condition*: required / *Type*: int /
+
+  The 16-bit numerical ID of the routine.
+
+* ``control_type``
+
+  / *Condition*: required / *Type*: int /
+
+  The service subfunction. Valid values are:
+
+  - startRoutine          = 1
+  - stopRoutine           = 2
+  - requestRoutineResults = 3
+
+* ``data``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Optional additional data to give to the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the RoutineControl service request.
         """
         self.verify_device_availability()
         response = None
@@ -852,27 +1140,53 @@ Requests the server to execute a reset sequence through the ECUReset service.
         return response
 
     def security_access(self, level, seed_params=bytes(), device_name="default"):
-        '''
-**Description:**
-    Successively calls request_seed and send_key to unlock a security level with the SecurityAccess service.
-    The key computation is done by calling config['security_algo']
-**Parameters:**
-    * param ``level`` (required): The level to unlock. Can be the odd or even variant of it.
-    * type ``level``: int
+        """
+Successively calls request_seed and send_key to unlock a security level with the SecurityAccess service.
+The key computation is done by calling config['security_algo'].
 
-    * param ``seed_params`` (optional): Optional data to attach to the RequestSeed request (securityAccessDataRecord).
-    * type ``seed_params``: bytes
-        '''
+**Arguments:**
+
+* ``level``
+
+  / *Condition*: required / *Type*: int /
+
+  The level to unlock. Can be the odd or even variant of it.
+
+* ``seed_params``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Optional data to attach to the RequestSeed request (securityAccessDataRecord).
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the SecurityAccess service request.
+        """
         self.verify_device_availability()
         response = self.client.unlock_security_access(level, seed_params)
         return response
 
     @keyword("Tester Present")
     def tester_present(self):
-        '''
-**Description:**
-    Sends a TesterPresent request to keep the session active.
-        '''
+        """
+Sends a TesterPresent request to keep the session active.
+
+**Arguments:**
+
+* No specific arguments for this method.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the TesterPresent request.
+        """
         self.verify_device_availability()
         response = None
         try:
@@ -883,49 +1197,93 @@ Requests the server to execute a reset sequence through the ECUReset service.
 
     @keyword("Transfer Data")
     def transfer_data(self, sequence_number: int, data: Optional[bytes] = None):
-        '''
-**Description:**
-    Transfer a block of data to/from the client to/from the server by sending a TransferData service request and returning the server response.
-**Parameters:**
-    * param ``sequence_number`` (required): Corresponds to an 8bit counter that should increment for each new block transferred.
-        Allowed values are from 0 to 0xFF
-    * type ``sequence_number``: int
+        """
+Transfers a block of data to/from the client to/from the server by sending a TransferData service request and returning the server response.
 
-    * param ``data`` (optional): Optional additional data to send to the server
-    * type ``data``: bytes
-        '''
+**Arguments:**
+
+* ``sequence_number``
+
+  / *Condition*: required / *Type*: int /
+
+  Corresponds to an 8-bit counter that should increment for each new block transferred. Allowed values are from 0 to 0xFF.
+
+* ``data``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Optional additional data to send to the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the TransferData service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.transfer_data(sequence_number, data)
         return response
     
     @keyword("Write Data By Identifier")
     def write_data_by_identifier(self, did: int, value: Any):
-        '''
-**Description:**
-    Requests to write a value associated with a data identifier (DID) through the WriteDataByIdentifier service.
-**Parameters:**
-    * param did: The DID to write its value
-    * type did: int
+        """
+Requests to write a value associated with a data identifier (DID) through the WriteDataByIdentifier service.
 
-    * param value: Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
-    * type value: int
-        '''
+**Arguments:**
+
+* ``did``
+
+  / *Condition*: required / *Type*: int /
+
+  The DID to write its value.
+
+* ``value``
+
+  / *Condition*: required / *Type*: int /
+
+  Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the WriteDataByIdentifier service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.write_data_by_identifier(did, value)
         return response
 
     @keyword("Write Memory By Address")
     def write_memory_by_address(self, memory_location: MemoryLocation, data: bytes):
-        '''
-**Description:**
-    Writes a block of memory in the server by sending a WriteMemoryByAddress service request.
-**Parameters:**
-    * param ``memory_location`` (required): The address and the size of the memory block to read.
-    * type ``memory_location``: MemoryLocation <MemoryLocation>
+        """
+Writes a block of memory in the server by sending a WriteMemoryByAddress service request.
 
-    * param ``data`` (required): The data to write into memory.
-    * type ``data``: bytes
-        '''
+**Arguments:**
+
+* ``memory_location``
+
+  / *Condition*: required / *Type*: MemoryLocation<MemoryLocation> /
+
+  The address and the size of the memory block to write.
+
+* ``data``
+
+  / *Condition*: required / *Type*: bytes /
+
+  The data to write into memory.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the WriteMemoryByAddress service request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.write_memory_by_address(memory_location, data)
         return response
@@ -936,48 +1294,58 @@ Requests the server to execute a reset sequence through the ECUReset service.
                               path: str = '',
                               dfi: Optional[DataFormatIdentifier] = None,
                               filesize: Optional[Union[int, Filesize]] = None):
-        
-        '''
-**Parameters:**
-    * param ``moop`` (required): Mode operate
 
-        - AddFile = 1
-        - DeleteFile = 2
-        - ReplaceFile = 3
-        - ReadFile = 4
-        - ReadDir = 5
-        - ResumeFile = 6
+        """
+Sends a RequestFileTransfer request
+**Arguments:**
 
-    * type ``moop``: int
+* ``moop``
 
-    * param ``path`` (required):
-    * type ``path``: str
+  / *Condition*: required / *Type*: int /
 
-    * param ``dfi``: DataFormatIdentifier defining the compression and encryption scheme of the data.
-        If not specified, the default value of 00 will be used, specifying no encryption and no compression.
-        Use for ``moop``:
+  Mode of operation:
+  - AddFile = 1
+  - DeleteFile = 2
+  - ReplaceFile = 3
+  - ReadFile = 4
+  - ReadDir = 5
+  - ResumeFile = 6
 
-            - AddFile = 1
-            - ReplaceFile = 3
-            - ReadFile = 4
-            - ResumeFile = 6
+* ``path``
 
-    * type ``dfi``: DataFormatIdentifier
+  / *Condition*: required / *Type*: str /
 
-    * param ``filesize`` (optional): The filesize of the file to write.
+  The path of the file or directory.
 
-    If filesize is an object of type Filesize, the uncompressed size and compressed size will be encoded on
-    the minimum amount of bytes necessary, unless a ``width`` is explicitly defined. If no compressed size is given or filesize is an ``int``,
-    then the compressed size will be set equal to the uncompressed size or the integer value given as specified by ISO-14229
+* ``dfi``
 
-    Use for ``moop``:
+  / *Condition*: optional / *Type*: DataFormatIdentifier /
 
-            - AddFile = 1
-            - ReplaceFile = 3
-            - ResumeFile = 6
+  DataFormatIdentifier defining the compression and encryption scheme of the data. Defaults to no compression and no encryption.
+  Use for:
+  - AddFile = 1
+  - ReplaceFile = 3
+  - ReadFile = 4
+  - ResumeFile = 6
 
-    * type ``filesize``: int | Filesize
-        '''
+* ``filesize``
+
+  / *Condition*: optional / *Type*: int | Filesize /
+
+  The filesize of the file to write. If `Filesize`, uncompressed and compressed sizes will be encoded as needed.
+  Use for:
+  - AddFile = 1
+  - ReplaceFile = 3
+  - ResumeFile = 6
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the file operation.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.request_file_transfer(moop, path, dfi, filesize)
         return response
@@ -994,65 +1362,87 @@ Requests the server to execute a reset sequence through the ECUReset service.
                        proof_of_ownership_client: Optional[bytes] = None,
                        ephemeral_public_key_client: Optional[bytes] = None,
                        additional_parameter: Optional[bytes] = None):
-        '''
-**Description:**
-    Sends an Authentication request introduced in 2020 version of ISO-14229-1. You can also use the helper functions to send each authentication task (sub function).
-**Parameters:**
-    * param ``authentication_task`` (required): The authenticationTask (subfunction) to use.
+        """
+Sends an Authentication request introduced in 2020 version of ISO-14229-1.
+**Arguments:**
 
-        - deAuthenticate = 0
-        - verifyCertificateUnidirectional = 1
-        - verifyCertificateBidirectional = 2
-        - proofOfOwnership = 3
-        - transmitCertificate = 4
-        - requestChallengeForAuthentication = 5
-        - verifyProofOfOwnershipUnidirectional = 6
-        - verifyProofOfOwnershipBidirectional = 7
-        - authenticationConfiguration = 8
+* ``authentication_task``
 
-    * type ``authentication_task``: int
+  / *Condition*: required / *Type*: int /
 
-    * param ``communication_configuration`` (optional): Optional Configuration information about how to proceed with security in further diagnostic communication after the Authentication (vehicle manufacturer specific).
+  The authentication task (subfunction) to use:
+  - deAuthenticate = 0
+  - verifyCertificateUnidirectional = 1
+  - verifyCertificateBidirectional = 2
+  - proofOfOwnership = 3
+  - transmitCertificate = 4
+  - requestChallengeForAuthentication = 5
+  - verifyProofOfOwnershipUnidirectional = 6
+  - verifyProofOfOwnershipBidirectional = 7
+  - authenticationConfiguration = 8
 
-    Allowed values are from 0 to 255.
+* ``communication_configuration``
 
-    * type ``communication_configuration``: int
+  / *Condition*: optional / *Type*: int /
 
-    * param ``certificate_client`` (optional): Optional The Certificate to verify.
-    * type ``certificate_client``: bytes
+  Configuration about security in future diagnostic communication (vehicle manufacturer specific). Allowed values are from 0 to 255.
 
-    * param ``challenge_client`` (optional): Optional The challenge contains vehicle manufacturer specific formatted client data (likely containing randomized information) or is a random number.
-    * type ``challenge_client``: bytes
+* ``certificate_client``
 
-    * param ``algorithm_indicator`` (optional):
+  / *Condition*: optional / *Type*: bytes /
 
-    Optional Indicates the algorithm used in the generating and verifying Proof of Ownership (POWN),
-    which further determines the parameters used in the algorithm and possibly the session key creation mode.
-    This field is a 16 byte value containing the BER encoded OID value of the algorithm used.
-    The value is left aligned and right padded with zero up to 16 bytes.
+  The certificate to verify.
 
-    * type ``algorithm_indicator``: bytes
+* ``challenge_client``
 
-    * param ``certificate_evaluation_id``: Optional unique ID to identify the evaluation type of the transmitted certificate.
+  / *Condition*: optional / *Type*: bytes /
 
-    The value of this parameter is vehicle manufacturer specific.
-    Subsequent diagnostic requests with the same evaluationTypeId will overwrite the certificate data of the previous requests.
-    Allowed values are from 0 to 0xFFFF.
+  Client challenge containing vehicle manufacturer-specific data or a random number.
 
-    * type certificate_evaluation_id: int
+* ``algorithm_indicator``
 
-    * param ``certificate_data`` (optional): Optional The Certificate to verify.
-    * type ``certificate_data``: bytes
+  / *Condition*: optional / *Type*: bytes /
 
-    * param ``proof_of_ownership_client`` (optional): Optional Proof of Ownership of the previous given challenge to be verified by the server.
-    * type ``proof_of_ownership_client``: bytes
+  Algorithm used in Proof of Ownership (POWN). This is a 16-byte value containing the BER-encoded OID of the algorithm.
 
-    * param ``ephemeral_public_key_client`` (optional): Optional Ephemeral public key generated by the client for Diffie-Hellman key agreement.
-    * type ``ephemeral_public_key_client``: bytes
+* ``certificate_evaluation_id``
 
-    * param ``additional_parameter`` (optional): Optional additional parameter is provided to the server if the server indicates as neededAdditionalParameter.
-    * type ``additional_parameter``: bytes
-        '''
+  / *Condition*: optional / *Type*: int /
+
+  Unique ID for evaluating the transmitted certificate. Allowed values are from 0 to 0xFFFF.
+
+* ``certificate_data``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Certificate data for verification.
+
+* ``proof_of_ownership_client``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Proof of Ownership of the challenge to be verified by the server.
+
+* ``ephemeral_public_key_client``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Client's ephemeral public key for Diffie-Hellman key agreement.
+
+* ``additional_parameter``
+
+  / *Condition*: optional / *Type*: bytes /
+
+  Additional parameter provided if required by the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The server's response to the authentication request.
+        """
         self.verify_device_availability()
         response = self.uds_device.client.authentication(authentication_task,
                                               communication_configuration,
@@ -1069,23 +1459,30 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Routine Control By Name")
     def routine_control_by_name(self, routine_name, data = None):
         """
-**Description:**
-    Sends a request for the RoutineControl service by routine name
-**Parameters:**
-    * param ``routine_name`` (required): Name of routine
-    * type ``routine_name``: str
+Sends a request for the RoutineControl service by routine name.
 
-    * param ``control_type`` (required): The service subfunction
-    * type ``control_type`` int
+**Arguments:**
 
-    Valid ``control_type``
+* param ``routine_name`` (required): Name of the routine
+  * type ``routine_name``: str
 
-        - startRoutine          = 1
-        - stopRoutine           = 2
-        - requestRoutineResults = 3
+* param ``control_type`` (required): The service subfunction
+  * type ``control_type``: int
 
-    * param ``data`` (optional): Optional additional data to give to the server
-    * type ``data`` bytes
+  Valid ``control_type``:
+
+    - startRoutine          = 1
+    - stopRoutine           = 2
+    - requestRoutineResults = 3
+
+* param ``data`` (optional): Optional additional data to give to the server
+  * type ``data``: bytes
+
+**Returns:**
+
+* ``response``  
+  / *Type*: Response /  
+  The server's response to the RoutineControl request.
         """
         self.verify_device_availability()
         diag_services = self.uds_device.diag_service_db.get_data_by_name([routine_name])
@@ -1100,14 +1497,21 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Read Data By Name")
     def read_data_by_name(self, service_name_list = [], parameters = None):
         """
-**Description:**
-    Get diagnostic service list by list of service name
-**Parameters:**
-    * param ``service_name_list``: list of service name
-    * type ``service_name_list``: list[str]
+Get diagnostic service list by a list of service names.
 
-    * param ``parameters``: parameter list
-    * type ``parameters``: list[]
+**Arguments:**
+
+* param ``service_name_list``: List of service names
+  * type ``service_name_list``: list[str]
+
+* param ``parameters``: Parameter list
+  * type ``parameters``: list[]
+
+**Returns:**
+
+* ``response``  
+  / *Type*: Response /  
+  The server's response containing the diagnostic service list.
         """
         self.verify_device_availability()
         diag_service_list = []
@@ -1123,14 +1527,21 @@ Requests the server to execute a reset sequence through the ECUReset service.
     @keyword("Get encoded request message")
     def get_encoded_request_message(self, diag_service_list, parameters=None):
         """
-            **Description:**
-                Get diagnostic service encoded request list (hex value)
-            **Parameters:**
-                * param ``diag_service_list``: Diagnostic service list
-                * type ``diag_service_list``: []
+Get diagnostic service encoded request list (hex value).
 
-                * param ``parameters``: parameter list
-                * type ``parameters``: list[]
+**Arguments:**
+
+* param ``diag_service_list``: Diagnostic service list
+  * type ``diag_service_list``: list
+
+* param ``parameters``: Parameter list
+  * type ``parameters``: list[]
+
+**Returns:**
+
+* ``uds_list``  
+  / *Type*: list /  
+  The list of encoded requests in hex value.
         """
         self.verify_device_availability()
         uds_list = []
