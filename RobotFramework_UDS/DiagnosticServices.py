@@ -67,7 +67,6 @@ class PDXCodec(DidCodec):
         self.service = service
 
     def decode(self, string_bin: bytes):
-
         parameters = self.service.positive_responses[0].parameters
         response_prefix_hex = "".join([hex(parameters[0].coded_value).replace("0x", ""), hex(parameters[1].coded_value).replace("0x", "")])
 

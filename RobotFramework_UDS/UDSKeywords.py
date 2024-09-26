@@ -1155,8 +1155,22 @@ Requests to write a value associated with a data identifier (DID) through the Wr
 
   The response from the WriteDataByIdentifier service request.
         """
+        # uds_device = self.__device_check(device_name)
+        # response = uds_device.client.write_data_by_identifier(did, value)
+        # return response
+
         uds_device = self.__device_check(device_name)
+        SID_RQ = 46 # The request id of read data by identifier
+
+        # Get the did_codec from pdx file
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        did_codec[did] = {ascii(obj)}
+        # Set it to uds config
+        uds_device.config['data_identifiers'].update(did_codec)
+        self.set_config(uds_device.config, device_name)
+
         response = uds_device.client.write_data_by_identifier(did, value)
+        logger.info(response.service_data.values[0])
         return response
 
     @keyword("Write Memory By Address")
@@ -1451,3 +1465,11 @@ Get diagnostic service encoded request list (hex value).
         uds_list = []
         uds_list = uds_device.diag_service_db.get_encoded_request_message(diag_service_list, parameters)
         return uds_list
+
+    @keyword("Write Data By Name")
+    def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
+        uds_device = self.__device_check(device_name)
+        diag_service_list = uds_device.diag_service_db.get_data_by_name([service_name])
+        data_id = diag_service_list[0].request.parameters[1].coded_value
+        response = self.write_data_by_identifier(data_id, value, device_name="default")
+        return response

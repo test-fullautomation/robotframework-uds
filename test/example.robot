@@ -5,9 +5,9 @@ Suite Setup    Connect
 Suite Teardown    Disconnect
 
 *** Variables ***
-${SUT_IP_ADDRESS}=    192.168.0.1
+${SUT_IP_ADDRESS}=    192.168.0.7
 ${SUT_LOGICAL_ADDRESS}=    1863
-${TB_IP_ADDRESS}=    192.168.0.99
+${TB_IP_ADDRESS}=    192.168.0.240
 ${TB_LOGICAL_ADDRESS}=    1895
 ${ACTIVATION_TYPE}=    0
 
@@ -15,6 +15,8 @@ ${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_
 ${VARIANT}=    CTS_STLA_Brain
 
 ${NAME}=    UDS Connector
+
+${PARAM_DICT}    {"Day": 26, "Month": "September", "Year": 2024, "Hour": 10, "Second": 45, "Minute": 0}
 
 *** Keywords ***
 Connect
@@ -78,3 +80,9 @@ Test user can use Diagnostic Session Control service on ECU
     Log    Diagnostic Session Control service
 
     Diagnostic Session Control    1
+
+Test user can use Write Data By Name service on ECU
+    Log    Write Data By Name service
+
+    Log    RealTimeClock_Write
+    Write Data By Name    RealTimeClock_Write    ${PARAM_DICT}
