@@ -1089,7 +1089,6 @@ Sends a TesterPresent request to keep the session active.
   The response from the TesterPresent request.
         """
         uds_device = self.__device_check(device_name)
-        self.verify_device_availability()
         response = None
         try:
             response = uds_device.client.tester_present()
