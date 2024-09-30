@@ -19,13 +19,13 @@ ${NAME}=    UDS Connector
 *** Keywords ***
 Connect
     Log    Create a uds Connector
-    ${uds}=    Create UDS Connector    ecu_ip_address= ${SUT_IP_ADDRESS}
+    Create UDS Connector    ecu_ip_address= ${SUT_IP_ADDRESS}
     ...                     ecu_logical_address= ${SUT_LOGICAL_ADDRESS}
     ...                     client_ip_address= ${TB_IP_ADDRESS}
     ...                     client_logical_address= ${TB_LOGICAL_ADDRESS}
     ...                     activation_type= ${ACTIVATION_TYPE}
     Log    Using UDS Connector
-    Connect UDS Connector    name=${Name}
+    Connect UDS Connector
     Log    Open uds connection
     Open UDS Connection
     Using pdx
