@@ -18,7 +18,7 @@ from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
 import udsoncan
-from udsoncan.common.DidCodec import DidCodec
+
 class UDSDeviceManager:
     def __init__(self):
         self.uds_device = {}
