@@ -83,6 +83,3 @@ Test user can use Write Data By Name service on ECU
     Log    RealTimeClock_Write
     ${PARAM_DICT}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
     Write Data By Name    RealTimeClock_Write    ${PARAM_DICT}
-
-
-    # Write Data By Identifier    4234    4212365
