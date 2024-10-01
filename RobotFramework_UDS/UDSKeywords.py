@@ -18,7 +18,7 @@ from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
 import udsoncan
-
+from udsoncan.common.DidCodec import DidCodec
 class UDSDeviceManager:
     def __init__(self):
         self.uds_device = {}
@@ -1089,7 +1089,6 @@ Sends a TesterPresent request to keep the session active.
   The response from the TesterPresent request.
         """
         uds_device = self.__device_check(device_name)
-        self.verify_device_availability()
         response = None
         try:
             response = uds_device.client.tester_present()
@@ -1155,22 +1154,19 @@ Requests to write a value associated with a data identifier (DID) through the Wr
 
   The response from the WriteDataByIdentifier service request.
         """
-        # uds_device = self.__device_check(device_name)
-        # response = uds_device.client.write_data_by_identifier(did, value)
-        # return response
-
+        logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
         SID_RQ = 46 # The request id of read data by identifier
 
         # Get the did_codec from pdx file
         did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
-        did_codec[did] = {ascii(obj)}
+
         # Set it to uds config
         uds_device.config['data_identifiers'].update(did_codec)
         self.set_config(uds_device.config, device_name)
 
         response = uds_device.client.write_data_by_identifier(did, value)
-        logger.info(response.service_data.values[0])
+        logger.info(f"DID echo: {response.service_data.did_echo}")
         return response
 
     @keyword("Write Memory By Address")
@@ -1468,8 +1464,13 @@ Get diagnostic service encoded request list (hex value).
 
     @keyword("Write Data By Name")
     def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
+        # Verify the device is available
         uds_device = self.__device_check(device_name)
+
+        # Get service from name and verify the service is available
         diag_service_list = uds_device.diag_service_db.get_data_by_name([service_name])
         data_id = diag_service_list[0].request.parameters[1].coded_value
+
         response = self.write_data_by_identifier(data_id, value, device_name="default")
+        logger.info(f"Write {service_name} successful")
         return response

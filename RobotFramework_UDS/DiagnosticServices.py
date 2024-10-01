@@ -18,38 +18,37 @@ class DiagnosticServices:
         diag_service_list = []
         for service_name in service_name_list:
             try:
+                logger.info(f"Get {service_name} service")
                 diag_service = getattr(self.diag_services, service_name)
                 diag_service_list.append(diag_service)
             except:
-                logger.error(f"Diagnostic service does not contain an item named {service_name}")
+                logger.error(f"Diagnostic services does not contain an item named {service_name}")
 
         return diag_service_list
 
-    def get_encoded_request_message(self, diag_service_list, parameters=None):
+    def get_encoded_request_message(self, diag_service_list, **parameter):
         uds_list = []
         for diag_service in diag_service_list:
-            param_dict = {}
-            uds = ""
-            logger.info(f"[uds] Service name: {diag_service}")
-            if parameters:
-                for param in parameters:
-                    isolate_list = param.split("=")
-                    param_dict[isolate_list[0]] = eval(isolate_list[1])
-
-                logger.info(f"[uds] Parameters: {param_dict}")
-                try:
-                    uds = diag_service(**param_dict).hex()
-                    uds_list.append(uds)
-                except:
-                    logger.info(f"UDS: Retrieve uds failed.")
-            else:
-                uds = diag_service().hex()
-                if len(uds) > 0:
-                    logger.info(f"UDS: {uds}")
-                    uds_list.append(uds)
+            logger.info(f"Encode {diag_service} message")
+            encode_message = None
+            try:
+                if not parameter:
+                    encode_message = getattr(self.diag_services, diag_service).encode_request()
                 else:
-                    logger.info("UDS: Retrieve uds failed.")
+                    param = parameter.get("parameter")
+                    request_parameters = getattr(self.diag_services, diag_service).request.parameters
+                    for i in range(2, len(request_parameters)):
+                        input_value = param[request_parameters[i].long_name]
+                        param[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
 
+                    # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
+                    encode_message = bytes(getattr(self.diag_services, diag_service).encode_request(**param))[3:]
+
+                uds_list.append(encode_message)
+            except Exception as e:
+                logger.error(f"Failed to encode {diag_service} message.")
+                raise Exception(f"Reason: {e}")
+            
         return uds_list
 
     def get_did_codec(self, service_id):
@@ -74,11 +73,32 @@ class PDXCodec(DidCodec):
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
         return response
 
+    def encode(self, parameter):
+        logger.info(f"Encode {self.service.short_name} message")
+        encode_message = None
+        try:
+            if not parameter:
+                encode_message = self.service.encode_request()
+            else:
+                request_parameters = self.service.request.parameters
+
+                # The parameters from the Robot test are strings, so they are converted to the right types.
+                for i in range(2, len(request_parameters)):
+                    input_value = parameter[request_parameters[i].long_name]
+                    parameter[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
+
+                # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
+                encode_message = bytes(self.service.encode_request(**parameter))[3:]
+                logger.info(f"Encode message: {encode_message}")
+        except Exception as e:
+            logger.error(f"Failed to encode {self.service.short_name} message.")
+            raise Exception(f"Reason: {e}")
+            
+        return encode_message
+
     def __len__(self) -> int:
         bit_length = self.service.positive_responses[0].get_static_bit_length()
         if bit_length:
             return (bit_length >> 3) - 3
         else:
             raise DidCodec.ReadAllRemainingData
-
-

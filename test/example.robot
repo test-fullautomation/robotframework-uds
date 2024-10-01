@@ -5,19 +5,15 @@ Suite Setup    Connect
 Suite Teardown    Disconnect
 
 *** Variables ***
-${SUT_IP_ADDRESS}=    192.168.0.7
+${SUT_IP_ADDRESS}=    192.168.0.1
 ${SUT_LOGICAL_ADDRESS}=    1863
-${TB_IP_ADDRESS}=    192.168.0.240
+${TB_IP_ADDRESS}=    192.168.0.99
 ${TB_LOGICAL_ADDRESS}=    1895
 ${ACTIVATION_TYPE}=    0
 
 ${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
 ${VARIANT}=    CTS_STLA_Brain
-
-${NAME}=    UDS Connector
-
-${PARAM_DICT}    {"Day": 26, "Month": "September", "Year": 2024, "Hour": 10, "Second": 45, "Minute": 0}
-
+${PARAM_STR}=    Day=26, Month=September, Year=2024, Hour=10, Second=45, Minute=0
 *** Keywords ***
 Connect
     Log    Create a uds Connector
@@ -85,4 +81,8 @@ Test user can use Write Data By Name service on ECU
     Log    Write Data By Name service
 
     Log    RealTimeClock_Write
+    ${PARAM_DICT}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
     Write Data By Name    RealTimeClock_Write    ${PARAM_DICT}
+
+
+    # Write Data By Identifier    4234    4212365
