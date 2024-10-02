@@ -84,5 +84,8 @@ Test user can use Write Data By Name service on ECU
     ${PARAM_DICT}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
     Write Data By Name    RealTimeClock_Write    ${PARAM_DICT}
 
+    ${DICT}=    Create Dictionary    ipAddress=155
+    Write Data By Name    CTS_IPAddress_Write    ${DICT}
+
     Log    Using service did instead service's name
     Write Data By Identifier    25382    ${PARAM_DICT}
