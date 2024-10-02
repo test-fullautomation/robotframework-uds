@@ -1142,7 +1142,7 @@ Requests to write a value associated with a data identifier (DID) through the Wr
 
 * ``value``
 
-  / *Condition*: required / *Type*: any /
+  / *Condition*: required / *Type*: dict /
 
   Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
 
@@ -1477,7 +1477,7 @@ Requests to write a value associated with a name of service through the WriteDat
 
 * ``value``
 
-  / *Condition*: required / *Type*: any /
+  / *Condition*: required / *Type*: dict /
 
   Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
 
