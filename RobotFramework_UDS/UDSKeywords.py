@@ -1142,7 +1142,7 @@ Requests to write a value associated with a data identifier (DID) through the Wr
 
 * ``value``
 
-  / *Condition*: required / *Type*: int /
+  / *Condition*: required / *Type*: any /
 
   Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
 
@@ -1156,7 +1156,7 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         """
         logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
-        SID_RQ = 46 # The request id of read data by identifier
+        SID_RQ = 46 # The request id of write data by identifier
 
         # Get the did_codec from pdx file
         did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
@@ -1464,6 +1464,31 @@ Get diagnostic service encoded request list (hex value).
 
     @keyword("Write Data By Name")
     def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
+        """
+Requests to write a value associated with a name of service through the WriteDataByName service.
+
+**Arguments:**
+
+* ``did``
+
+  / *Condition*: required / *Type*: int /
+
+  The DID to write its value.
+
+* ``value``
+
+  / *Condition*: required / *Type*: any /
+
+  Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The response from the WriteDataByIdentifier service request.
+        """
         # Verify the device is available
         uds_device = self.__device_check(device_name)
 

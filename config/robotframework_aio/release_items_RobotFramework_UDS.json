@@ -103,6 +103,7 @@ for more details.
 "
 * Updated the UDS keywords to support working with multiple connections.
 * Updated the docstring for improved clarity and accuracy.
+* Add Write Data By Name feature.
 
 Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
 for more details.
