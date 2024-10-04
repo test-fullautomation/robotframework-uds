@@ -14,8 +14,6 @@ ${ACTIVATION_TYPE}=    0
 ${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
 ${VARIANT}=    CTS_STLA_Brain
 
-${NAME}=    UDS Connector
-
 *** Keywords ***
 Connect
     Log    Create a uds Connector
@@ -78,3 +76,16 @@ Test user can use Diagnostic Session Control service on ECU
     Log    Diagnostic Session Control service
 
     Diagnostic Session Control    1
+
+Test user can use Write Data By Name service on ECU
+    Log    Write Data By Name service
+
+    Log    RealTimeClock_Write
+    ${PARAM_DICT}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
+    Write Data By Name    RealTimeClock_Write    ${PARAM_DICT}
+
+    ${DICT}=    Create Dictionary    ipAddress=155
+    Write Data By Name    CTS_IPAddress_Write    ${DICT}
+
+    Log    Using service did instead service's name
+    Write Data By Identifier    25382    ${PARAM_DICT}
