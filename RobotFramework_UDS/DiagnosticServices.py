@@ -93,9 +93,13 @@ class PDXCodec(DidCodec):
                 request_parameters = self.service.request.parameters
 
                 # The parameters from the Robot test are strings, so they are converted to the right types.
-                for i in range(2, len(request_parameters)):
-                    input_value = parameter_dict[request_parameters[i].long_name]
-                    parameter_dict[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
+                for param in request_parameters:
+                    # Just "VALUE" parameter are required for encode message
+                    if param.parameter_type == "VALUE":
+                        input_value = parameter_dict[param.long_name]
+                        parameter_dict[param.long_name] = param.physical_type.base_data_type.from_string(input_value)
+                    else:
+                        pass
 
                 # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
