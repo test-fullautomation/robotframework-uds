@@ -26,30 +26,40 @@ class DiagnosticServices:
 
         return diag_service_list
 
-    def get_encoded_request_message(self, diag_service_list, **parameter):
-        uds_list = []
-        for diag_service in diag_service_list:
-            logger.info(f"Encode {diag_service} message")
-            encode_message = None
-            try:
-                if not parameter:
-                    encode_message = getattr(self.diag_services, diag_service).encode_request()
-                else:
-                    param = parameter.get("parameter")
-                    request_parameters = getattr(self.diag_services, diag_service).request.parameters
-                    for i in range(2, len(request_parameters)):
-                        input_value = param[request_parameters[i].long_name]
-                        param[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
+    def get_encoded_request_message(self, service_name, parameter_dict):
+        service = getattr(self.diag_services, service_name)
+        logger.info(f"Encode {service.short_name} message")
+        encode_message = None
+        try:
+            if not parameter_dict:
+                encode_message = service.encode_request()
+            else:
+                request_parameters = service.request.parameters
 
-                    # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
-                    encode_message = bytes(getattr(self.diag_services, diag_service).encode_request(**param))[3:]
+                # The parameters from the Robot test are strings, so they are converted to the right types.
+                for param in request_parameters:
+                    # Just "VALUE" parameter are required for encode message
+                    if param.parameter_type == "VALUE":
+                        input_value = parameter_dict[param.long_name]
+                        parameter_dict[param.long_name] = param.physical_type.base_data_type.from_string(input_value)
+                    else:
+                        pass
 
-                uds_list.append(encode_message)
-            except Exception as e:
-                logger.error(f"Failed to encode {diag_service} message.")
-                raise Exception(f"Reason: {e}")
+                encode_message = bytes(service.encode_request(**parameter_dict))
+                logger.info(f"Full encode message: {encode_message}")
+        except Exception as e:
+            logger.error(f"Failed to encode {service.short_name} message.")
+            raise Exception(f"Reason: {e}")
             
-        return uds_list
+        return encode_message
+
+    def get_decode_response_message(self, service_name, raw_message: bytes):
+        service = getattr(self.diag_services, service_name)
+        logger.info(f"Decode {service.short_name} message")
+        decode_message = None
+
+        decode_message = service.decode_message(raw_message).param_dict
+        return decode_message
 
     def get_did_codec(self, service_id):
         did_codec = {}
@@ -73,22 +83,22 @@ class PDXCodec(DidCodec):
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
         return response
 
-    def encode(self, parameter):
+    def encode(self, parameter_dict):
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
         try:
-            if not parameter:
+            if not parameter_dict:
                 encode_message = self.service.encode_request()
             else:
                 request_parameters = self.service.request.parameters
 
                 # The parameters from the Robot test are strings, so they are converted to the right types.
                 for i in range(2, len(request_parameters)):
-                    input_value = parameter[request_parameters[i].long_name]
-                    parameter[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
+                    input_value = parameter_dict[request_parameters[i].long_name]
+                    parameter_dict[request_parameters[i].long_name] = request_parameters[i].physical_type.base_data_type.from_string(input_value)
 
                 # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
-                encode_message = bytes(self.service.encode_request(**parameter))[3:]
+                encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")

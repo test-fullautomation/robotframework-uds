@@ -1380,15 +1380,6 @@ Sends a request for the RoutineControl service by routine name.
 * param ``routine_name`` (required): Name of the routine
   * type ``routine_name``: str
 
-* param ``control_type`` (required): The service subfunction
-  * type ``control_type``: int
-
-  Valid ``control_type``:
-
-    - startRoutine          = 1
-    - stopRoutine           = 2
-    - requestRoutineResults = 3
-
 * param ``data`` (optional): Optional additional data to give to the server
   * type ``data``: bytes
 
@@ -1398,15 +1389,29 @@ Sends a request for the RoutineControl service by routine name.
   / *Type*: Response /  
   The server's response to the RoutineControl request.
         """
+        response = None
         uds_device = self.__device_check(device_name)
         diag_services = uds_device.diag_service_db.get_data_by_name([routine_name])
         control_type = diag_services[0].request.parameters[1].coded_value
         if control_type != 1 and control_type != 2:
             control_type = 3
         routine_id = diag_services[0].request.parameters[2].coded_value
-        
+
+        if data is not None:
+            # Encoded data to bytes
+            if isinstance(data, dict):
+                original_encode_message = self.get_encoded_request_message(routine_name, data)
+
+                # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for the service id and control type.
+                data = original_encode_message[4:]
+                logger.info(f"The encode message send to UDS: {data}")
+
         response = self.routine_control(routine_id, control_type, data, device_name)
-        return response
+
+        # Decode response message
+        decode_message = uds_device.diag_service_db.get_decode_response_message(routine_name, original_encode_message)
+        logger.info(f"Decode message: {decode_message}")
+        return decode_message
 
     @keyword("Read Data By Name")
     def read_data_by_name(self, service_name_list = [], parameters = None, device_name="default"):
@@ -1439,28 +1444,27 @@ Get diagnostic service list by a list of service names.
         return response
 
     @keyword("Get encoded request message")
-    def get_encoded_request_message(self, diag_service_list, parameters=None, device_name="default"):
+    def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default"):
         """
-Get diagnostic service encoded request list (hex value).
+Get diagnostic service encoded request (bytes value).
 
 **Arguments:**
 
-* param ``diag_service_list``: Diagnostic service list
-  * type ``diag_service_list``: list
+* param ``service_name``: Diagnostic service's name
+  * type ``service_name``: string
 
-* param ``parameters``: Parameter list
-  * type ``parameters``: list[]
+* param ``parameters_dict``: Parameter dictionary
+  * type ``parameters_dict``: dict
 
 **Returns:**
 
-* ``uds_list``  
-  / *Type*: list /  
-  The list of encoded requests in hex value.
+* ``encoded_message``  
+  / *Type*: bytes /  
+  The encoded message in bytes value.
         """
         uds_device = self.__device_check(device_name)
-        uds_list = []
-        uds_list = uds_device.diag_service_db.get_encoded_request_message(diag_service_list, parameters)
-        return uds_list
+        encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict)
+        return encoded_message
 
     @keyword("Write Data By Name")
     def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
