@@ -73,7 +73,7 @@ Test user can connect multiple UDS connection
 
     Read Data By Name    ${service_name_list_2}    device_name= ${DEVICE_NAME_2}
 
-Test user can connect multiple UDS connection but connect to the same CPU
+Test user can connect multiple UDS connection but connect to the same ECU
     Log    Test user can connect multiple UDS connection
     Log    Connect to device 1
     Create UDS Connector    device_name= ${DEVICE_NAME_1}

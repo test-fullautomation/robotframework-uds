@@ -69,8 +69,8 @@ Test user can use Read Data By Name service on ECU
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service
 
-    Log    PingTest_Start_NoResponse
-    Routine Control By Name    PingTest_Start_NoResponse
+    ${param_dict}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
+    Routine Control By Name    StartIperfServer_Start    ${param_dict}
 
 Test user can use Diagnostic Session Control service on ECU
     Log    Diagnostic Session Control service
