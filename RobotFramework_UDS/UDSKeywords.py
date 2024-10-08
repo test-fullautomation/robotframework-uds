@@ -1409,7 +1409,8 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        decode_message = uds_device.diag_service_db.get_decode_response_message(routine_name, original_encode_message)
+        response_message = bytes.fromhex(hex(diag_services[0].positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + response.data.hex())
+        decode_message = uds_device.diag_service_db.get_decode_response_message(routine_name, response_message)
         logger.info(f"Decode message: {decode_message}")
         return decode_message
 
