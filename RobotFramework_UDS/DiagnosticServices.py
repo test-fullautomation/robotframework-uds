@@ -14,7 +14,7 @@ class DiagnosticServices:
         self.diag_layer = self.odx_db.ecus[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
-    def get_data_by_name(self, service_name_list):
+    def get_diag_service_by_name(self, service_name_list):
         diag_service_list = []
         for service_name in service_name_list:
             try:
@@ -60,6 +60,11 @@ class DiagnosticServices:
 
         decode_message = service.decode_message(raw_message).param_dict
         return decode_message
+
+    def get_full_positive_response_data(self, service_name, data: bytes):
+        diag_service = self.get_diag_service_by_name([service_name])[0]
+        positive_response_data = bytes.fromhex(hex(diag_service.positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + data.hex())
+        return positive_response_data
 
     def get_did_codec(self, service_id):
         did_codec = {}

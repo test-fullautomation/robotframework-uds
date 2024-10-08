@@ -805,7 +805,7 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         response = uds_device.client.read_data_by_identifier(data_id_list)
         for i in range(0, len(data_id_list)):
             logger.info(response.service_data.values[data_id_list[i]])
-        return response
+        return response.service_data.values
 
     @keyword("Read DTC Information")
     def read_dtc_information(self,
@@ -1391,7 +1391,7 @@ Sends a request for the RoutineControl service by routine name.
         """
         response = None
         uds_device = self.__device_check(device_name)
-        diag_services = uds_device.diag_service_db.get_data_by_name([routine_name])
+        diag_services = uds_device.diag_service_db.get_diag_service_by_name([routine_name])
         control_type = diag_services[0].request.parameters[1].coded_value
         if control_type != 1 and control_type != 2:
             control_type = 3
@@ -1409,8 +1409,7 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        response_message = bytes.fromhex(hex(diag_services[0].positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + response.data.hex())
-        decode_message = uds_device.diag_service_db.get_decode_response_message(routine_name, response_message)
+        decode_message = self.get_decoded_positive_response_message(routine_name, response.data)
         logger.info(f"Decode message: {decode_message}")
         return decode_message
 
@@ -1437,14 +1436,14 @@ Get diagnostic service list by a list of service names.
         diag_service_list = []
         data_id_list = []
 
-        diag_service_list = uds_device.diag_service_db.get_data_by_name(service_name_list)
+        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name(service_name_list)
         for diag_service in diag_service_list:
             data_id = diag_service.request.parameters[1].coded_value
             data_id_list.append(data_id)
         response = self.read_data_by_identifier(data_id_list, device_name)
         return response
 
-    @keyword("Get encoded request message")
+    @keyword("Get Encoded Request Message")
     def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default"):
         """
 Get diagnostic service encoded request (bytes value).
@@ -1466,6 +1465,34 @@ Get diagnostic service encoded request (bytes value).
         uds_device = self.__device_check(device_name)
         encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict)
         return encoded_message
+
+    @keyword("Get Decoded Response Message")
+    def get_decoded_positive_response_message(self, service_name, response_data, device_name="default"):
+        """
+Get diagnostic service decoded positive response message.
+
+**Arguments:**
+
+* param ``service_name``: Diagnostic service's name
+  * type ``service_name``: string
+
+* param ``response_data``: Bytes data from the response
+  * type ``parameters_dict``: bytes
+
+* param ``device_name``: Name of the device
+  * type ``device_name``: string
+
+**Returns:**
+
+* ``decode_message``
+  / *Type*: dict /
+  The decode message in dictionary.
+        """
+        uds_device = self.__device_check(device_name)
+        response_message = uds_device.diag_service_db.get_full_positive_response_data(service_name, response_data)
+        decode_message = uds_device.diag_service_db.get_decode_response_message(service_name, response_message)
+        logger.info(f"Decode message: {decode_message}")
+        return decode_message
 
     @keyword("Write Data By Name")
     def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
@@ -1498,7 +1525,7 @@ Requests to write a value associated with a name of service through the WriteDat
         uds_device = self.__device_check(device_name)
 
         # Get service from name and verify the service is available
-        diag_service_list = uds_device.diag_service_db.get_data_by_name([service_name])
+        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([service_name])
         data_id = diag_service_list[0].request.parameters[1].coded_value
 
         response = self.write_data_by_identifier(data_id, value, device_name="default")
