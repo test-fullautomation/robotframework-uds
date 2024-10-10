@@ -35,23 +35,36 @@ class DiagnosticServices:
                 encode_message = service.encode_request()
             else:
                 request_parameters = service.request.parameters
-
-                # The parameters from the Robot test are strings, so they are converted to the right types.
-                for param in request_parameters:
-                    # Just "VALUE" parameter are required for encode message
-                    if param.parameter_type == "VALUE":
-                        input_value = parameter_dict[param.long_name]
-                        parameter_dict[param.long_name] = param.physical_type.base_data_type.from_string(input_value)
-                    else:
-                        pass
+                parameter_dict = self.convert_request_params_to_base_data_type(parameter_dict, request_parameters)
 
                 encode_message = bytes(service.encode_request(**parameter_dict))
                 logger.info(f"Full encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {service.short_name} message.")
             raise Exception(f"Reason: {e}")
-            
+
         return encode_message
+
+    def convert_request_params_to_base_data_type(self, user_data_dict, request_parameters):
+        for param in request_parameters:
+            # Just "VALUE" parameter are required for encode message
+            if param.parameter_type == "VALUE":
+                input_value = user_data_dict[param.short_name]
+                if param.physical_type is None:
+                    input_value = self.convert_request_params_to_base_data_type(input_value, param.dop.parameters)
+                else:
+                    base_type = param.physical_type.base_data_type.name
+                    if base_type == "A_BYTEFIELD":
+                        clean_string = input_value[2:-1]
+                        bytes_obj = bytes(clean_string, 'latin1')
+                        # input_value = bytes(clean_string, 'latin1')
+                        input_value = bytearray(bytes_obj)
+                        user_data_dict[param.short_name] = param.physical_type.base_data_type.from_string(input_value.hex())
+                    else:
+                        user_data_dict[param.short_name] = param.physical_type.base_data_type.from_string(input_value)
+            else:
+                pass
+        return user_data_dict
 
     def get_decode_response_message(self, service_name, raw_message: bytes):
         service = getattr(self.diag_services, service_name)
