@@ -15,7 +15,8 @@ class DiagnosticServices:
         self.diag_layer = self.odx_db.ecus[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
-    def __convert_sub_param(self, odx_param, req_sub_param):
+    @staticmethod
+    def convert_sub_param(odx_param, req_sub_param):
         """
 Recursive convert sub parameters in given request to correct data type
         """
@@ -40,8 +41,9 @@ Recursive convert sub parameters in given request to correct data type
             return req_sub_param[odx_param.short_name]
         else:
             return odx_param.physical_type.base_data_type.from_string(org_val)
-        
-    def convert_request_data_type(self, service, parameter_dict):
+    
+    @staticmethod
+    def convert_request_data_type(service, parameter_dict):
         """
 Convert given request parameters (dictionary) to correct data type
         """
@@ -51,7 +53,7 @@ Convert given request parameters (dictionary) to correct data type
         for param in request_parameters:
             # Just "VALUE" parameter are required for encode message
             if param.parameter_type == "VALUE":
-                converted_param = self.__convert_sub_param(param, parameter_dict)
+                converted_param = DiagnosticServices.convert_sub_param(param, parameter_dict)
                 parameter_dict[param.short_name] = converted_param
 
         return parameter_dict
@@ -128,16 +130,8 @@ class PDXCodec(DidCodec):
             if not parameter_dict:
                 encode_message = self.service.encode_request()
             else:
-                request_parameters = self.service.request.parameters
-
-                # The parameters from the Robot test are strings, so they are converted to the right types.
-                for param in request_parameters:
-                    # Just "VALUE" parameter are required for encode message
-                    if param.parameter_type == "VALUE":
-                        input_value = parameter_dict[param.long_name]
-                        parameter_dict[param.long_name] = param.physical_type.base_data_type.from_string(input_value)
-                    else:
-                        pass
+                # Convert the parameter data type to the correct type
+                parameter_dict = self.convert_request_data_type(self.service, parameter_dict)
 
                 # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
