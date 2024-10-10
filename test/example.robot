@@ -14,8 +14,6 @@ ${ACTIVATION_TYPE}=    0
 ${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
 ${VARIANT}=    CTS_STLA_Brain
 
-&{req_params}    port=${5000}    arg=-i        data=b'\x023423'
-
 &{canConfig0}    CanConfigUsed=true    TX_CAN_Channel=0    timeout=100    waitTime=0    rxId=b'\x40\x12\x00\x00'    txId=b'\x40\x21\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
 &{canConfig1}    CanConfigUsed=true    TX_CAN_Channel=1    timeout=100    waitTime=0    rxId=b'\x40\x12\x00\x00'    txId=b'\x40\x21\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
 &{canConfig2}    CanConfigUsed=true    TX_CAN_Channel=2    timeout=100    waitTime=0    rxId=b'\x01\xDC\x00\x00'    txId=b'\x1F\xFF\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=client
@@ -23,8 +21,7 @@ ${VARIANT}=    CTS_STLA_Brain
 &{canConfig4}    CanConfigUsed=false    TX_CAN_Channel=4    timeout=100    waitTime=0    rxId=b'\x00\x00\x07\xFF'    txId=b'\x00\x00\x07\x77'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
 &{canConfig5}    CanConfigUsed=false    TX_CAN_Channel=5    timeout=100    waitTime=0    rxId=b'\x00\x12\x00\x00'    txId=b'\x00\x21\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x0F\x04\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
 
-&{canConfigs}    canConfig0=&{canConfig0}    canConfig1=&{canConfig1}    canConfig2=&{canConfig2}    canConfig3=&{canConfig3}    canConfig4=&{canConfig4}    canConfig5=&{canConfig5}
-
+&{canConfig}    canConfig0=&{canConfig0}    canConfig1=&{canConfig1}    canConfig2=&{canConfig2}    canConfig3=&{canConfig3}    canConfig4=&{canConfig4}    canConfig5=&{canConfig5}
 *** Keywords ***
 Connect
     Log    Create a uds Connector
@@ -72,32 +69,36 @@ Test user can use ECU Reset service on ECU
 Test user can use Read Data By Name service on ECU
     Log    Use Read Data By Name service
 
-    Log    readCPUClockFrequencies_Read
-
-    ${service_name_list}=    Create List    readCPUClockFrequencies_Read
-    ${res}=    Read Data By Name    ${service_name_list}
-    Log    ${res}    console=True
-
-Test user can use Read Data By Identifier
     Log    Use Read Data By Identifier - 25392
-    # ${list_identifers}=    Create List    25392
+
     ${list_identifers}=    Create List    0x6330
     ${res}=    Read Data By Identifier    ${list_identifers}
     Log    ${res}    console=True
     Log    ${res[0x6330]}    console=True
 
+    Log    readCPUClockFrequencies_Read
+
+    ${service_name_list}=    Create List    readCPUClockFrequencies_Read
+    ${responses}=    Read Data By Name    ${service_name_list}
+    Log    ${responses}    console=True
+
+    FOR    ${request_did}    IN    @{responses.keys()}
+        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+        ${response}=    Set Variable    ${responses["${request_did}"]}
+        FOR    ${item}    IN    @{response.keys()}
+            Log    ${item} : ${response["${item}"]}    console=True
+        END
+    END
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 
     ${param_dict}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
-    ${res}=    Routine Control By Name    StartIperfServer_Start    ${param_dict}
-    Log    ${res}    console=True
+    ${response}=    Routine Control By Name    StartIperfServer_Start    ${param_dict}
 
-Test user can use Routine Control By Name service on ECU - complex request parameters
-    Log    Routine Control By Name service: CAN_MasterSlaveEnduranceRun_Start
-
-    ${res}=    Routine Control By Name    CAN_MasterSlaveEnduranceRun_Start    ${canConfigs}
-    Log    ${res}    console=True
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
 
 Test user can use Diagnostic Session Control service on ECU
     Log    Diagnostic Session Control service
@@ -130,9 +131,11 @@ Test Get Encoded Request Message - Simple request parameters
     Log    ${res.hex()}    console=True
 
 Test Get Encoded Request Message - Complex request parameters
+    Load PDX    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/XTS_MPCI_Maas_1.23.45.pdx    XTS_MPCI_MaaS
+
     Log     Test Get Encoded Request Message - CAN_MasterSlaveEnduranceRun_Start
     ${service_name}=    Set Variable    CAN_MasterSlaveEnduranceRun_Start
-    ${res}=    Get Encoded Request Message    ${service_name}    ${canConfigs}
+    ${res}=    Get Encoded Request Message    ${service_name}    ${canConfig}
     Log    ${res}    console=True
     Log    ${res.hex()}    console=True
 
@@ -145,11 +148,10 @@ Test Get Decoded Response Message
     Log    ${res}    console=True
 
 Test Read List Services
-    ${list_read_services}=    Create List   ETH_MarvellSwitch0_FWVersion_Read
-    ...                                     TestManager_SWVersion_Read
+    ${list_read_services}=    Create List   TestManager_SWVersion_Read
     ...                                     CTSSWVersion_Read
-    ...                                     Temperature_SoC_GPUSS_2_Read
-    ...                                     Temperature_SoC_NSP_1_2_0_Read
+    ...                                     CPULoad_Read
+
     FOR    ${service_name}    IN    @{list_read_services}
         Log      Read Data of ${service_name}     console=True
         ${list_service}=    Create List    ${service_name}
