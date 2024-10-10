@@ -30,14 +30,14 @@ Recursive convert sub parameters in given request to correct data type
                 match = re.match(r"^b['\"](.*)['\"]$", org_val)
                 if match:
                     #convert byte string to hex data
-                    org_val = bytes(match.group(1), "utf-8").hex()  
+                    org_val = bytes(match.group(1), "latin1").hex()  
         except:
             raise Exception(f"required parameter {odx_param.short_name} is missing")
         
         if odx_param.dop and hasattr(odx_param.dop, "parameters"):
             for sub_param in odx_param.dop.parameters:
                 print(f"{odx_param.short_name} - {sub_param.short_name}")
-                req_sub_param[odx_param.short_name][sub_param.short_name] = self.__convert_sub_param(sub_param, org_val)
+                req_sub_param[odx_param.short_name][sub_param.short_name] = DiagnosticServices.convert_sub_param(sub_param, org_val)
             return req_sub_param[odx_param.short_name]
         else:
             return odx_param.physical_type.base_data_type.from_string(org_val)
@@ -131,7 +131,7 @@ class PDXCodec(DidCodec):
                 encode_message = self.service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
-                parameter_dict = self.convert_request_data_type(self.service, parameter_dict)
+                parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
 
                 # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]

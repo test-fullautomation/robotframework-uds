@@ -1446,7 +1446,7 @@ Get diagnostic service list by a list of service names.
 
         # return service name as key instead of did
         updated_response = {}
-        for did, did_res in response.item():
+        for did, did_res in response.items():
             updated_response[did_mapping[did]] = did_res
 
         return updated_response
