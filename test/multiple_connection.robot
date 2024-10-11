@@ -3,23 +3,23 @@ Library    RobotFramework_TestsuitesManagement    WITH NAME    testsuites
 Library    RobotFramework_UDS
 
 *** Variables ***
-${SUT_IP_ADDRESS_1}=    192.168.0.7
-${SUT_LOGICAL_ADDRESS_1}=    1863
-${TB_IP_ADDRESS_1}=    192.168.0.240
-${TB_LOGICAL_ADDRESS_1}=    1895
-${ACTIVATION_TYPE_1}=    0
-${DEVICE_NAME_1}=    UDS Connector 1
-${FILE_1}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
-${VARIANT_1}=    CTS_STLA_Brain
+${SUT_IP_ADDRESS_1}=         SUT_IP_ADDRESS_1
+${SUT_LOGICAL_ADDRESS_1}=    SUT_LOGICAL_ADDRESS_1
+${TB_IP_ADDRESS_1}=          TB_IP_ADDRESS_1
+${TB_LOGICAL_ADDRESS_1}=     TB_LOGICAL_ADDRESS_1
+${ACTIVATION_TYPE_1}=        0
+${DEVICE_NAME_1}=            UDS Connector 1
+${FILE_1}=                   path/file.pdx
+${VARIANT_1}=                VARIANT_1
 
-${SUT_IP_ADDRESS_2}=    192.168.0.4
-${SUT_LOGICAL_ADDRESS_2}=    1863
-${TB_IP_ADDRESS_2}=    192.168.0.240
-${TB_LOGICAL_ADDRESS_2}=    1895
-${ACTIVATION_TYPE_2}=    0
-${DEVICE_NAME_2}=    UDS Connector 2
-${FILE_2}=    C:/Data/Git/mpci_rack_nau2kor/project/testbench/hi1/uds/XTS_S32G_1.0.356.pdx
-${VARIANT_2}=    XTS_S32G
+${SUT_IP_ADDRESS_2}=         SUT_IP_ADDRESS_2
+${SUT_LOGICAL_ADDRESS_2}=    SUT_LOGICAL_ADDRESS_2
+${TB_IP_ADDRESS_2}=          TB_IP_ADDRESS_2
+${TB_LOGICAL_ADDRESS_2}=     TB_LOGICAL_ADDRESS_2
+${ACTIVATION_TYPE_2}=        0
+${DEVICE_NAME_2}=            UDS Connector 2
+${FILE_2}=                   path/file.pdx
+${VARIANT_2}=                VARIANT_2
 
 ${ERROR_STR}=    NegativeResponseException: ReadDataByIdentifier service execution returned a negative response IncorrectMessageLengthOrInvalidFormat (0x13)
 *** Test Cases ***

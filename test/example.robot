@@ -5,14 +5,14 @@ Suite Setup    Connect
 Suite Teardown    Disconnect
 
 *** Variables ***
-${SUT_IP_ADDRESS}=    192.168.0.1
-${SUT_LOGICAL_ADDRESS}=    1863
-${TB_IP_ADDRESS}=    192.168.0.99
-${TB_LOGICAL_ADDRESS}=    1895
-${ACTIVATION_TYPE}=    0
+${SUT_IP_ADDRESS}=         SUT_IP_ADDRESS
+${SUT_LOGICAL_ADDRESS}=    SUT_LOGICAL_ADDRESS
+${TB_IP_ADDRESS}=          TB_IP_ADDRESS
+${TB_LOGICAL_ADDRESS}=     TB_LOGICAL_ADDRESS
+${ACTIVATION_TYPE}=        0
 
-${FILE}=    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/CTS_STLA_V1_15_2.pdx
-${VARIANT}=    CTS_STLA_Brain
+${FILE}=       path/file.pdx
+${VARIANT}=    variant
 
 &{canConfig0}    CanConfigUsed=true     TX_CAN_Channel=0    timeout=100    waitTime=0    rxId=b'\x40\x12\x00\x00'    txId=b'\x40\x21\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
 &{canConfig1}    CanConfigUsed=true     TX_CAN_Channel=1    timeout=100    waitTime=0    rxId=b'\x40\x12\x00\x00'    txId=b'\x40\x21\x00\x00'    dlc=4 Bytes    nominalBitTiming=b'\x08\x0F\x04\x01'    dataBitTiming=b'\x02\x05\x02\x01'    tdcEnable=Enabled    tdcOffset=10    pattern=b'\xAA\xBB\xCC\xDD\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'    Can_Operation_Mode=server
@@ -131,7 +131,7 @@ Test Get Encoded Request Message - Simple request parameters
     Log    ${res.hex()}    console=True
 
 Test Get Encoded Request Message - Complex request parameters
-    Load PDX    C:/Users/MAR3HC/Desktop/UDS/robotframework-uds/test/pdx/XTS_MPCI_Maas_1.23.45.pdx    XTS_MPCI_MaaS
+    Load PDX    path/file.pdx    variant
 
     Log     Test Get Encoded Request Message - CAN_MasterSlaveEnduranceRun_Start
     ${service_name}=    Set Variable    CAN_MasterSlaveEnduranceRun_Start
