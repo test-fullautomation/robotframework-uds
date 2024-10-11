@@ -89,6 +89,7 @@ Test user can use Read Data By Name service on ECU
             Log    ${item} : ${response["${item}"]}    console=True
         END
     END
+
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 
@@ -120,7 +121,6 @@ Test user can use Write Data By Name service on ECU
     Log    Using service did instead service's name
     ${res}=    Write Data By Identifier    25382    ${PARAM_DICT}
     Log    ${res}    console=True
-
 
 Test Get Encoded Request Message - Simple request parameters
     Log     Test Get Encoded Request Message - mainCPUStressTest_Start
@@ -158,5 +158,3 @@ Test Read List Services
         ${res}=    Read Data By Name   ${list_service}
         Log    ${res}    console=True
     END
-    # ${res}=    Read Data By Name   ${list_read_services}
-    # Log    ${res}    console=True
