@@ -19,6 +19,28 @@ class DiagnosticServices:
     def convert_sub_param(odx_param, req_sub_param):
         """
 Recursive convert sub parameters in given request to correct data type
+
+**Arguments:**
+
+* ``odx_param``
+
+  / *Condition*: required / *Type*: object /
+
+  The ODX parameters.
+
+* ``req_sub_param``
+
+  / *Condition*: required / *Type*: dict /
+
+  The dictionary of request parameter.
+
+**Returns:**
+
+* ``req_sub_param``
+
+  / *Type*: dict /
+
+  The dictionary of request parameters with the correct data types.
         """
         try:
             org_val = req_sub_param[odx_param.short_name]
@@ -46,6 +68,28 @@ Recursive convert sub parameters in given request to correct data type
     def convert_request_data_type(service, parameter_dict):
         """
 Convert given request parameters (dictionary) to correct data type
+
+**Arguments:**
+
+* ``service``
+
+  / *Condition*: required / *Type*: object /
+
+  The diagnostic service.
+
+* ``parameter_dict``
+
+  / *Condition*: required / *Type*: dict /
+
+  The dictionary of request parameter.
+
+**Returns:**
+
+* ``parameter_dict``
+
+  / *Type*: dict /
+
+  The dictionary of request parameters with the correct data types.
         """
         request_parameters = service.request.parameters
 
@@ -57,8 +101,27 @@ Convert given request parameters (dictionary) to correct data type
                 parameter_dict[param.short_name] = converted_param
 
         return parameter_dict
-    
+
     def get_diag_service_by_name(self, service_name_list):
+        """
+Retrieve the list of diagnostic services from a PDX file using a specified list of service names.
+
+**Arguments:**
+
+* ``service_name_list``
+
+  / *Condition*: required / *Type*: list /
+
+  The list of service names
+
+**Returns:**
+
+* ``diag_service_list``
+
+  / *Type*: list /
+
+  The list of diagnostic services from a PDX file.
+        """
         diag_service_list = []
         for service_name in service_name_list:
             try:
@@ -71,6 +134,31 @@ Convert given request parameters (dictionary) to correct data type
         return diag_service_list
 
     def get_encoded_request_message(self, service_name, parameter_dict):
+        """
+Retrieve the encode request message from parameters dictionary.
+
+**Arguments:**
+
+* ``service_name``
+
+  / *Condition*: required / *Type*: str /
+
+  The service's names
+
+* ``parameter_dict``
+
+  / *Condition*: required / *Type*: dict /
+
+  The dictionary of request parameter.
+
+**Returns:**
+
+* ``encode_message``
+
+  / *Type*: bytes /
+
+  The encoded message.
+        """
         service = getattr(self.diag_services, service_name)
         logger.info(f"Encode {service.short_name} message")
         encode_message = None
@@ -89,6 +177,31 @@ Convert given request parameters (dictionary) to correct data type
         return encode_message
 
     def get_decode_response_message(self, service_name, raw_message: bytes):
+        """
+Retrieve the encode request message from parameters dictionary.
+
+**Arguments:**
+
+* ``service_name``
+
+  / *Condition*: required / *Type*: str /
+
+  The service's names
+
+* ``raw_message``
+
+  / *Condition*: required / *Type*: bytes /
+
+  The raw message from the response.
+
+**Returns:**
+
+* ``decode_message``
+
+  / *Type*: bytes /
+
+  The decoded message.
+        """
         service = getattr(self.diag_services, service_name)
         logger.info(f"Decode {service.short_name} message")
         decode_message = None
@@ -97,11 +210,55 @@ Convert given request parameters (dictionary) to correct data type
         return decode_message
 
     def get_full_positive_response_data(self, service_name, data: bytes):
+        """
+Retrieve the complete byte data from the response, as the UDS removes the service ID.
+
+**Arguments:**
+
+* ``service_name``
+
+  / *Condition*: required / *Type*: str /
+
+  The service's names
+
+* ``data``
+
+  / *Condition*: required / *Type*: bytes /
+
+  The raw message from the response.
+
+**Returns:**
+
+* ``positive_response_data``
+
+  / *Type*: bytes /
+
+  The complete byte data from the response.
+        """
         diag_service = self.get_diag_service_by_name([service_name])[0]
         positive_response_data = bytes.fromhex(hex(diag_service.positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + data.hex())
         return positive_response_data
 
     def get_did_codec(self, service_id):
+        """
+Retrieves a dictionary of DID codecs for a given diagnostic service ID.
+
+**Arguments:**
+
+* ``service_id``
+
+  / *Condition*: required / *Type*: int /
+
+  The service's did
+
+**Returns:**
+
+* ``did_codec``
+
+  / *Type*: dict /
+
+  A dictionary where the keys are DIDs
+        """
         did_codec = {}
 
         diag_services = self.diag_layer.service_groups[service_id]
