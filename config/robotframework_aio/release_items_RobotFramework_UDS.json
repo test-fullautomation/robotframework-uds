@@ -101,11 +101,17 @@ for more details.
                                        ],
                    "0.13.1." : [
 "
-* Updated the UDS keywords to support working with multiple connections.
-* Updated the docstring for improved clarity and accuracy.
-* Add Write Data By Name, Routine Control By Name, Write Data By Name features.
-* Add Get Encoded Request Message, Get Decoded Response Message feature to support user encode/decode the request/response message.
+**Updated the UDS keywords to support working with multiple connections.**
 
+**Updated the docstring for improved clarity and accuracy.**
+
+**Added new keywords**
+
+* ``Write Data By Name``
+* ``Routine Control By Name``
+* ``Write Data By Name`` features.
+* ``Get Encoded Request Message``
+* ``Get Decoded Response Message``
 
 Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
 for more details.
