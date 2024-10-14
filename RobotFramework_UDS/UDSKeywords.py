@@ -1400,7 +1400,7 @@ Sends a request for the RoutineControl service by routine name.
         if data is not None:
             # Encoded data to bytes
             if isinstance(data, dict):
-                original_encode_message = self.get_encoded_request_message(routine_name, data)
+                original_encode_message = self.get_encoded_request_message(routine_name, data, device_name)
 
                 # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for the service id and control type.
                 data = original_encode_message[4:]
@@ -1409,7 +1409,7 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        decode_message = self.get_decoded_positive_response_message(routine_name, response.data)
+        decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
         logger.info(f"Decode message: {decode_message}")
         return decode_message
 
@@ -1536,6 +1536,6 @@ Requests to write a value associated with a name of service through the WriteDat
         diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([service_name])
         data_id = diag_service_list[0].request.parameters[1].coded_value
 
-        response = self.write_data_by_identifier(data_id, value, device_name="default")
+        response = self.write_data_by_identifier(data_id, value, device_name)
         logger.info(f"Write {service_name} successful")
         return response
