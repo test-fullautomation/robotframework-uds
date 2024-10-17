@@ -66,7 +66,7 @@ Recursive convert sub parameters in given request to correct data type
         else:
             # This is temporary solution due to the issue in odxtools
             # https://github.com/mercedes-benz/odxtools/issues/351
-            if isinstance(odx_param.dop.diag_coded_type, MinMaxLengthType) and isinstance(odx_param.dop.diag_coded_type.base_data_type, DataType.A_BYTEFIELD):
+            if isinstance(odx_param.dop.diag_coded_type, MinMaxLengthType) and (odx_param.dop.diag_coded_type.base_data_type == DataType.A_BYTEFIELD):
                 return bytes(odx_param.physical_type.base_data_type.from_string(org_val))
             else:
                 return odx_param.physical_type.base_data_type.from_string(org_val)
