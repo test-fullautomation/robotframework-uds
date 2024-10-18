@@ -51,10 +51,10 @@ Recursive convert sub parameters in given request to correct data type
                 # convert byte to hex data
                 org_val = org_val.hex()
             elif isinstance(org_val, str):
-                match = re.match(r"^b['\"](.*)['\"]$", org_val)
+                match = re.match(r"^b['\"](.*)['\"]$", org_val, re.DOTALL)
                 if match:
                     #convert byte string to hex data
-                    org_val = bytes(match.group(1), "latin1").hex()  
+                    org_val = bytes(match.group(1), "latin1").hex()
         except:
             raise Exception(f"required parameter {odx_param.short_name} is missing")
         
