@@ -2,8 +2,6 @@ from robot.api import logger
 from udsoncan.common.DidCodec import DidCodec
 import odxtools
 import re
-from odxtools.minmaxlengthtype import MinMaxLengthType
-from odxtools.odxtypes import DataType
 
 
 class DiagnosticServices:
@@ -64,12 +62,7 @@ Recursive convert sub parameters in given request to correct data type
                 req_sub_param[odx_param.short_name][sub_param.short_name] = DiagnosticServices.convert_sub_param(sub_param, org_val)
             return req_sub_param[odx_param.short_name]
         else:
-            # This is temporary solution due to the issue in odxtools
-            # https://github.com/mercedes-benz/odxtools/issues/351
-            if isinstance(odx_param.dop.diag_coded_type, MinMaxLengthType) and (odx_param.dop.diag_coded_type.base_data_type == DataType.A_BYTEFIELD):
-                return bytes(odx_param.physical_type.base_data_type.from_string(org_val))
-            else:
-                return odx_param.physical_type.base_data_type.from_string(org_val)
+            return odx_param.physical_type.base_data_type.from_string(org_val)
     
     @staticmethod
     def convert_request_data_type(service, parameter_dict):
