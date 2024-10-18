@@ -5,4 +5,4 @@ PythonExtensionsCollection
 robotframework
 udsoncan
 doipclient
-odxtools
+odxtools>=8.2.1
