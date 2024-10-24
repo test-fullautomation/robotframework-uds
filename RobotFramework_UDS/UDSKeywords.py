@@ -67,15 +67,15 @@ class UDSKeywords:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
     @keyword("Create UDS Connector")
-    def create_uds_connector(self, device_name="default", comunication_name="doip", **kwargs):
+    def create_uds_connector(self, device_name="default", communication_name="doip", **kwargs):
         """
 **Description:**
     Create a connection to establish
 **Parameters:**
-    * param ``comunication_name``: Name of communication
+    * param ``communication_name``: Name of communication
 
         - doip: Establish a doip connection to an (ECU)
-    * type ``comunication_name``: str
+    * type ``communication_name``: str
 
     * param ``ecu_ip_address`` (required): The IP address of the ECU to establish a connection. This should be a string representing an IPv4
             address like "192.168.1.1" or an IPv6 address like "2001:db8::".
@@ -117,7 +117,7 @@ class UDSKeywords:
         if self.uds_manager.is_device_exist(device_name):
             raise ValueError(f"Device with name '{device_name}' already exists.")
         connector = None
-        if comunication_name.lower() == "doip":
+        if communication_name.lower() == "doip":
             # Define required parameters
             required_params = ['ecu_ip_address', 'ecu_logical_address']
 
@@ -161,7 +161,7 @@ class UDSKeywords:
                               use_secure,
                               auto_reconnect_tcp)
 
-        elif comunication_name.lower() == "can":
+        elif communication_name.lower() == "can":
             # Define required parameters
             required_params = ['interface', 'txid', 'rxid', 'baudrate']
 
@@ -458,8 +458,8 @@ Sends a generic request for AccessTimingParameter service.
         response = uds_device.client.access_timing_parameter(access_type, timing_param_record)
         return response
 
-    @keyword("Clear Dianostic Information")
-    def clear_dianostic_infomation(self, group: int = 0xFFFFFF, memory_selection: Optional[int] = None, device_name="default"):
+    @keyword("Clear Diagnostic Information")
+    def clear_diagnostic_information(self, group: int = 0xFFFFFF, memory_selection: Optional[int] = None, device_name="default"):
         """
 Requests the server to clear its active Diagnostic Trouble Codes.
 
