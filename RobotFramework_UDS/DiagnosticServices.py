@@ -45,7 +45,7 @@ Recursive convert sub parameters in given request to correct data type
         try:
             org_val = req_sub_param[odx_param.short_name]
             # process byte / byte string data
-            if isinstance(org_val, bytes):
+            if isinstance(org_val, (bytes, bytearray)):
                 # convert byte to hex data
                 org_val = org_val.hex()
             elif isinstance(org_val, str):
