@@ -90,6 +90,17 @@ Test user can use Read Data By Name service on ECU
         END
     END
 
+Test user can use Input Output Control By Name service on ECU
+    Log    Input Output Control By Name service: CAM1PowerSupply_Set
+
+    ${param_dict}=    Create Dictionary    mode=passiv
+    ${response}=    Input Output Control By Name    CAM1PowerSupply_Set    ${param_dict}
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+    
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 

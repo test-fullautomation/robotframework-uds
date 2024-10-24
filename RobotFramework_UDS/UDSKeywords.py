@@ -1539,3 +1539,59 @@ Requests to write a value associated with a name of service through the WriteDat
         response = self.write_data_by_identifier(data_id, value, device_name)
         logger.info(f"Write {service_name} successful")
         return response
+
+    @keyword("Input Output Control By Name")
+    def io_control_by_name(self, io_control_name = None, data = None, device_name = "default"):
+        """
+Sends a request for the IOControl service by name of input output control service.
+
+**Arguments:**
+
+* ``io_control_name`` 
+
+  / *Condition*: required / *Type*: str /
+  
+  Name of the input output control service
+
+* ``data``
+
+  / *Condition*: optional / *Type*: dict /
+  
+  Optional additional data to give to the server
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: dict /  
+
+  The server's response as parameters dictionary to the IOControl request.
+        """
+        # Verify the device is available
+        uds_device = self.__device_check(device_name)
+
+        # Verify the service is available then get did and control_param from it 
+        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([io_control_name])
+        data_id = diag_service_list[0].request.parameters[1].coded_value
+        control_param = diag_service_list[0].request.parameters[2].coded_value
+
+        # Encoding request params if given
+        if data is not None:
+            # Encoded data to bytes
+            if isinstance(data, dict):
+                original_encode_message = self.get_encoded_request_message(io_control_name, data, device_name)
+
+                # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for:
+                # SID(3F): 1 byte
+                # DataIdentifier(did): 2 bytes
+                # ControlOptionRecord: 1 byte
+                data = original_encode_message[4:]
+                logger.info(f"The encode message send to UDS: {data}")
+
+        # Process io control request and get response data 
+        response = self.io_control(data_id, control_param, data, device_name)
+
+        # Decode response message to parameters dictionary
+        decode_message = self.get_decoded_positive_response_message(io_control_name, response.data, device_name)
+        logger.info(f"Decode message: {decode_message}")
+        return decode_message
