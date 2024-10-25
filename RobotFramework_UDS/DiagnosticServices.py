@@ -288,17 +288,27 @@ class PDXCodec(DidCodec):
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
         return response
 
-    def encode(self, **parameter_dict):
+    def encode(self, *parameter_val, **parameter_dict):
+        # encode() is called by WriteDataByIdentifier only pass value as positional argument(s)
+        # request parameter dictionary is passed as first positional argument parameter_val[0]
+
+        # encode is called by InputOutputControlByIdentifier pass value as positional or keyword argument(s)
+        # request parameter dictionary is passed as keyword arguments **parameter_dict
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
         try:
-            if not parameter_dict:
+            if (not parameter_val) and (not parameter_dict):
                 encode_message = self.service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
-                parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                if parameter_dict:
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                elif parameter_val and isinstance(parameter_val[0], dict):
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_val[0])
 
-                # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
+                # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes:
+                # SID: 1 byte
+                # DataIdentifier: 2 bytes
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
