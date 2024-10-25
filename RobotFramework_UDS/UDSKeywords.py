@@ -190,8 +190,10 @@ class UDSKeywords:
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant, device_name="default"):
         """
-Load PDX
+Load PDX file and update UDS configuration with DID Codec
+
 **Arguments:**
+
 * ``pdx_file``
 
   / *Type*: str /
@@ -204,6 +206,17 @@ Load PDX
         """
         self.__device_check(device_name)
         self.uds_manager.uds_device[device_name].diag_service_db = DiagnosticServices(pdx_file, variant)
+
+        # Get the did_codec from pdx file for services and update to UDS config
+        # Read Data By Identifier
+        did_codec_readdatabyidentifier = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X22)
+        self.uds_manager.uds_device[device_name].config['data_identifiers'].update(did_codec_readdatabyidentifier)
+        # Write Data By Identifier
+        did_codec_writedatabyidentifier = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X2E)
+        self.uds_manager.uds_device[device_name].config['data_identifiers'].update(did_codec_writedatabyidentifier)
+        # Input Output Control
+        did_codec_iocontrol = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X2F)
+        self.uds_manager.uds_device[device_name].config['input_output'].update(did_codec_iocontrol)
 
     @keyword("Create UDS Config")
     def create_config(self,
@@ -733,14 +746,6 @@ Substitutes the value of an input signal or overrides the state of an output by 
   The decoded response data.
         """
         uds_device = self.__device_check(device_name)
-        SID_RQ = 0X2F # The request id of read data by identifier
-
-        # Get the did_codec from pdx file
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
-
-        # Set it to uds config
-        uds_device.config['input_output'].update(did_codec)
-        self.set_config(uds_device.config, device_name)
 
         response = uds_device.client.io_control(did, control_param, values, masks)
         logger.info(response.service_data.decoded_data)
@@ -803,14 +808,6 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
-        SID_RQ = 34 # The request id of read data by identifier
-
-        # Get the did_codec from pdx file
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
-
-        # Set it to uds config
-        uds_device.config['data_identifiers'].update(did_codec)
-        self.set_config(uds_device.config, device_name)
 
         response = uds_device.client.read_data_by_identifier(data_id_list)
         for i in range(0, len(data_id_list)):
@@ -1166,14 +1163,6 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         """
         logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
-        SID_RQ = 46 # The request id of write data by identifier
-
-        # Get the did_codec from pdx file
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
-
-        # Set it to uds config
-        uds_device.config['data_identifiers'].update(did_codec)
-        self.set_config(uds_device.config, device_name)
 
         response = uds_device.client.write_data_by_identifier(did, value)
         logger.info(f"DID echo: {response.service_data.did_echo}")
