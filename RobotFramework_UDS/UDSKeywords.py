@@ -733,6 +733,15 @@ Substitutes the value of an input signal or overrides the state of an output by 
   The response from the InputOutputControlByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
+        SID_RQ = 0X2F # The request id of read data by identifier
+
+        # Get the did_codec from pdx file
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+
+        # Set it to uds config
+        uds_device.config['input_output'].update(did_codec)
+        self.set_config(uds_device.config, device_name)
+
         response = uds_device.client.io_control(did, control_param, values, masks)
         return response
 
@@ -1541,7 +1550,7 @@ Requests to write a value associated with a name of service through the WriteDat
         return response
 
     @keyword("Input Output Control By Name")
-    def io_control_by_name(self, io_control_name = None, data = None, device_name = "default"):
+    def io_control_by_name(self, io_control_name = None, value = None, mask = None, device_name = "default"):
         """
 Sends a request for the IOControl service by name of input output control service.
 
@@ -1553,11 +1562,22 @@ Sends a request for the IOControl service by name of input output control servic
   
   Name of the input output control service
 
-* ``data``
+* ``value``
 
   / *Condition*: optional / *Type*: dict /
   
   Optional additional data to give to the server
+
+* ``masks``
+
+  / *Condition*: optional / *Type*: list, dict, IOMask<IOMask>, bool /
+
+  Optional mask record for composite values. The mask definition must be included in ``config['input_output']``. It can be:
+
+  - A list naming the bit mask to set
+  - A dict with the mask name as a key and a boolean setting or clearing the mask as the value
+  - An instance of IOMask<IOMask>
+  - A boolean value to set all masks to the same value.
 
 **Returns:**
 
@@ -1575,21 +1595,8 @@ Sends a request for the IOControl service by name of input output control servic
         data_id = diag_service_list[0].request.parameters[1].coded_value
         control_param = diag_service_list[0].request.parameters[2].coded_value
 
-        # Encoding request params if given
-        if data is not None:
-            # Encoded data to bytes
-            if isinstance(data, dict):
-                original_encode_message = self.get_encoded_request_message(io_control_name, data, device_name)
-
-                # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for:
-                # SID(3F): 1 byte
-                # DataIdentifier(did): 2 bytes
-                # ControlOptionRecord: 1 byte
-                data = original_encode_message[4:]
-                logger.info(f"The encode message send to UDS: {data}")
-
         # Process io control request and get response data 
-        response = self.io_control(data_id, control_param, data, device_name)
+        response = self.io_control(data_id, control_param, value, mask, device_name)
 
         # Decode response message to parameters dictionary
         decode_message = self.get_decoded_positive_response_message(io_control_name, response.data, device_name)
