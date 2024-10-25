@@ -274,13 +274,21 @@ class PDXCodec(DidCodec):
 
     def decode(self, string_bin: bytes):
         parameters = self.service.positive_responses[0].parameters
-        response_prefix_hex = "".join([hex(parameters[0].coded_value).replace("0x", ""), hex(parameters[1].coded_value).replace("0x", "")])
+        response_prefix_hex = ""
+        # Get all CODED-CONST and insert to response message for decoding
+        # SID_PR
+        # DataIdentifier
+        # ControlParam (IC Control Service)
+        # ... 
+        for par in parameters:
+            if par.parameter_type == "CODED-CONST":
+                response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
 
         string_hex = "".join([response_prefix_hex, string_bin.hex()])
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
         return response
 
-    def encode(self, parameter_dict):
+    def encode(self, **parameter_dict):
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
         try:

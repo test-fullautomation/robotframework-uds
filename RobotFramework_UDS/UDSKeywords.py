@@ -728,9 +728,9 @@ Substitutes the value of an input signal or overrides the state of an output by 
 
 * ``response``
 
-  / *Type*: Response /
+  / *Type*: dict /
 
-  The response from the InputOutputControlByIdentifier service request.
+  The decoded response data.
         """
         uds_device = self.__device_check(device_name)
         SID_RQ = 0X2F # The request id of read data by identifier
@@ -743,7 +743,8 @@ Substitutes the value of an input signal or overrides the state of an output by 
         self.set_config(uds_device.config, device_name)
 
         response = uds_device.client.io_control(did, control_param, values, masks)
-        return response
+        logger.info(response.service_data.decoded_data)
+        return response.service_data.decoded_data
 
     @keyword("Link Control")
     def link_control(self, control_type: int, baudrate: Optional[Baudrate] = None, device_name="default"):
@@ -1583,9 +1584,9 @@ Sends a request for the IOControl service by name of input output control servic
 
 * ``response``
 
-  / *Type*: dict /  
+  / *Type*: dict /
 
-  The server's response as parameters dictionary to the IOControl request.
+  The decoded response data.
         """
         # Verify the device is available
         uds_device = self.__device_check(device_name)
@@ -1597,8 +1598,4 @@ Sends a request for the IOControl service by name of input output control servic
 
         # Process io control request and get response data 
         response = self.io_control(data_id, control_param, value, mask, device_name)
-
-        # Decode response message to parameters dictionary
-        decode_message = self.get_decoded_positive_response_message(io_control_name, response.data, device_name)
-        logger.info(f"Decode message: {decode_message}")
-        return decode_message
+        return response
