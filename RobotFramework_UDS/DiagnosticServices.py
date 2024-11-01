@@ -1,5 +1,6 @@
 from robot.api import logger
 from udsoncan.common.DidCodec import DidCodec
+from enum import Enum
 import odxtools
 import re
 
@@ -323,3 +324,24 @@ class PDXCodec(DidCodec):
             return (bit_length >> 3) - 3
         else:
             raise DidCodec.ReadAllRemainingData
+
+class ServiceID(Enum):
+    DIAGNOSTIC_SESSION_CONTROL = 0x10
+    ECU_RESET = 0x11
+    CLEAR_DIAGNOSTIC_INFORMATION = 0x14
+    READ_DTC_INFORMATION = 0x19
+    READ_DATA_BY_IDENTIFIER = 0x22
+    READ_MEMORY_BY_ADDRESS = 0x23
+    SECURITY_ACCESS = 0x27
+    COMMUNICATION_CONTROL = 0x28
+    READ_DATA_BY_PERIODIC_ID = 0x2A
+    WRITE_DATA_BY_IDENTIFIER = 0x2E
+    INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0x2F
+    ROUTINE_CONTROL = 0x31
+    REQUEST_DOWNLOAD = 0x34
+    REQUEST_UPLOAD = 0x35
+    TRANSFER_DATA = 0x36
+    TRANSFER_EXIT = 0x37
+    WRITE_MEMORY_BY_ADDRESS = 0x3D
+    TESTER_PRESENT = 0x3E
+    CONTROL_DTC_SETTING = 0x85
