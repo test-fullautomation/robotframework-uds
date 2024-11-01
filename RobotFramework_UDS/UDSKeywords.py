@@ -56,6 +56,42 @@ class UDSKeywords:
 
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, device_name="default", config=default_client_config, close_connection=False):
+        """
+Connects a UDS connector for the specified device.
+
+**Arguments:**
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+
+  Name of the device to connect to. If the device does not exist, a `ValueError` will be raised.
+
+* ``config``
+
+  / *Condition*: optional / *Type*: dict / *Default*: default_client_config /
+
+  Configuration settings for the UDS client, applied if the device is not already available.
+
+* ``close_connection``
+
+  / *Condition*: optional / *Type*: bool / *Default*: False /
+
+  Indicates whether to close the connection automatically when done.
+
+**Raises:**
+
+* ``ValueError``
+
+  Raised if the specified device does not exist, suggesting the use of "Create UDS Connector" to create a new device.
+
+**Returns:**
+
+* ``None``
+
+  No return value. The function initializes or updates the UDS connector for the specified device if not already available.
+        """
+
         if self.uds_manager.is_device_exist(device_name):
             if self.uds_manager.uds_device[device_name].available:
                 logger.info(f"Device {device_name} is available to be use.")
@@ -70,51 +106,77 @@ class UDSKeywords:
     @keyword("Create UDS Connector")
     def create_uds_connector(self, device_name="default", communication_name="doip", **kwargs):
         """
-**Description:**
-    Create a connection to establish
-**Parameters:**
-    * param ``communication_name``: Name of communication
+Establishes a connection with an ECU.
 
-        - doip: Establish a doip connection to an (ECU)
-    * type ``communication_name``: str
+**Arguments:**
 
-    * param ``ecu_ip_address`` (required): The IP address of the ECU to establish a connection. This should be a string representing an IPv4
-            address like "192.168.1.1" or an IPv6 address like "2001:db8::".
-    * type ``ecu_ip_address``: str
+* ``communication_name``
 
-    * param ``ecu_logical_address`` (required): The logical address of the ECU.
-    * type ``ecu_logical_address``: any
+  / *Type*: str / *Condition*: required /
 
-    * param ``tcp_port`` (optional): The TCP port used for unsecured data communication (default is **TCP_DATA_UNSECURED**).
-    * type ``tcp_port``: int
+  Specifies the type of communication to establish.
 
-    * param ``udp_port`` (optional): The UDP port used for ECU discovery (default is **UDP_DISCOVERY**).
-    * type ``udp_port``: int
+* ``ecu_ip_address``
 
-    * param ``activation_type`` (optional): The type of activation, which can be the default value (ActivationTypeDefault) or a specific value based on application-specific settings.
-    * type ``activation_type``: RoutingActivationRequest.ActivationType,
+  / *Type*: str / *Condition*: required /
 
-    * param ``protocol_version`` (optional): The version of the protocol used for the connection (default is 0x02).
-    * type ``protocol_version``: int
+  The IP address of the ECU for establishing the connection. Should be a valid IPv4 (e.g., "192.168.1.1") or IPv6 address (e.g., "2001:db8::").
 
-    * param ``client_logical_address`` (optional): The logical address that this DoIP client will use to identify itself. Per the spec,
-            this should be 0x0E00 to 0x0FFF. Can typically be left as default.
-    * type ``client_logical_address``: int
+* ``ecu_logical_address``
 
-    * param ``client_ip_address`` (optional): If specified, attempts to bind to this IP as the source for both UDP and TCP communication.
-            Useful if you have multiple network adapters. Can be an IPv4 or IPv6 address just like `ecu_ip_address`, though
-            the type should match.
-    * type ``client_ip_address``: str
+  / *Type*: any / *Condition*: required /
 
-    * param ``use_secure`` (optional): Enables TLS. If set to True, a default SSL context is used. For more control, a preconfigured
-            SSL context can be passed directly. Untested. Should be combined with changing tcp_port to 3496.
-    * type ``use_secure``: Union[bool,ssl.SSLContext]
+  The logical address of the ECU.
 
-    * param ``auto_reconnect_tcp`` (optional): Attempt to automatically reconnect TCP sockets that were closed by peer
+* ``tcp_port``
 
-    * type ``auto_reconnect_tcp``: bool
+  / *Type*: int / *Condition*: optional / *Default*: **TCP_DATA_UNSECURED** /
 
+  TCP port used for unsecured data communication.
+
+* ``udp_port``
+
+  / *Type*: int / *Condition*: optional / *Default*: **UDP_DISCOVERY** /
+
+  UDP port used for ECU discovery.
+
+* ``activation_type``
+
+  / *Type*: RoutingActivationRequest.ActivationType / *Condition*: optional / *Default*: ActivationTypeDefault /
+
+  Specifies the activation type, which can be the default (ActivationTypeDefault) or a value based on application-specific settings.
+
+* ``protocol_version``
+
+  / *Type*: int / *Condition*: optional / *Default*: 0x02 /
+
+  The version of the protocol used for the connection.
+
+* ``client_logical_address``
+
+  / *Type*: int / *Condition*: optional / *Default*: None /
+
+  The logical address this DoIP client will use to identify itself. Per specification, this should be within the range 0x0E00 to 0x0FFF.
+
+* ``client_ip_address``
+
+  / *Type*: str / *Condition*: optional / *Default*: None /
+
+  If specified, binds to this IP as the source for UDP and TCP communication. Can be an IPv4 or IPv6 address, matching the type of ``ecu_ip_address``.
+
+* ``use_secure``
+
+  / *Type*: Union[bool, ssl.SSLContext] / *Condition*: optional / *Default*: False /
+
+  Enables TLS if set to True. Uses a default SSL context by default; can be set to a preconfigured SSL context for more control. If enabled, consider changing ``tcp_port`` to 3496.
+
+* ``auto_reconnect_tcp``
+
+  / *Type*: bool / *Condition*: optional / *Default*: False /
+
+  Enables automatic reconnection of TCP sockets if closed by the peer.
         """
+
         if self.uds_manager.is_device_exist(device_name):
             raise ValueError(f"Device with name '{device_name}' already exists.")
         connector = None
@@ -240,136 +302,77 @@ Load PDX file and update UDS configuration with DID Codec
                   use_server_timing = True,
                   extended_data_size = None):
         """
-**Description:**
-    Create a config for UDS connector
-**Parameters:**
-    * param `exception_on_negative_response`:
-      When set to True, the client will raise a NegativeResponseException when the server responds with a negative response.
-      When set to False, the returned Response will have its property positive set to False
-    * type `exception_on_negative_response`: bool
+Creates a configuration for the UDS connector.
 
-    * param `exception_on_invalid_response`:
-      When set to True, the client will raise a InvalidResponseException when the underlying service interpret_response raises the same exception.
-      When set to False, the returned Response will have its property valid set to False
-    * type `exception_on_invalid_response`: bool
+**Arguments:**
 
-    * param `exception_on_unexpected_response`:
-      When set to True, the client will raise a UnexpectedResponseException when the server returns a response that is not expected.
-      For instance, a response for a different service or when the subfunction echo doesn't match the request.
-      When set to False, the returned Response will have its property unexpected set to True in the same case.
-    * type `exception_on_unexpected_response`: bool
+* ``exception_on_negative_response`` : bool
+  When set to True, raises a NegativeResponseException if the server responds with a negative response. If False, the Response's `positive` property will be set to False.
 
-    * param `security_algo`:
-      The implementation of the security algorithm necessary for the SecurityAccess service.
-    * type `security_algo`:
-      This function must have the following signatures:
+* ``exception_on_invalid_response`` : bool
+  When set to True, raises an InvalidResponseException if interpret_response encounters an invalid response. If False, the Response's `valid` property will be set to False.
 
-      SomeAlgorithm(level, seed, params)
+* ``exception_on_unexpected_response`` : bool
+  When set to True, raises an UnexpectedResponseException if the server returns an unexpected response, such as an unmatched subfunction echo. If False, the Response's `unexpected` property will be set to True.
 
-          Parameters:
+* ``security_algo`` : Callable[[int, bytes, Any], bytes]
+  Security algorithm function for the SecurityAccess service.
+  Signature: `security_algo(level, seed, params) -> bytes`
 
-              - level (int) - The requested security level.
-              - seed (bytes) - The seed given by the server
-              - params - The value provided by the client configuration security_algo_params
+    - ``level`` : int — The requested security level.
+    - ``seed`` : bytes — The seed provided by the server.
+    - ``params`` : Any — Parameters provided by `security_algo_params`.
 
-          Returns: The security key
-          Return type: byte
-    * param `security_algo_params`:
-      This value will be given to the security algorithm defined in config['security_algo'].
-    * type `security_algo_params`: object | dict
+* ``security_algo_params`` : object or dict
+  Parameters passed to the security algorithm specified in `security_algo`.
 
-    * param `data_identifiers`:
-      This configuration is a dictionary that is mapping an integer (the data identifier) with a DidCodec.
-      These codecs will be used to convert values to byte payload and vice-versa when sending/receiving data for a service that needs a DID, i.e
+* ``data_identifiers`` : dict[int, Union[str, DidCodec]]
+  A dictionary mapping data identifiers to a codec (string or DidCodec) for encoding/decoding values in services like ReadDataByIdentifier, WriteDataByIdentifier, etc.
 
-          - ReadDataByIdentifier
-          - ReadDataByName
-          - WriteDataByIdentifier
-          - ReadDTCInformation with subfunction reportDTCSnapshotRecordByDTCNumber and reportDTCSnapshotRecordByRecordNumber
-    * type `data_identifiers`: dict
-      Possible configuration values are
-          - string : The string will be used as a pack/unpack string when processing the data
-          - DidCodec (class or instance) : The encode/decode method will be used to process the data
+* ``input_output`` : dict[int, Union[str, DidCodec, dict]]
+  Dictionary mapping IO data identifiers to a codec for InputOutputControlByIdentifier service. Supports composite codecs with sub-dictionaries specifying bitmasks.
 
-    * param `input_output`:
-      This configuration is a dictionary that is mapping an integer (the IO data identifier) with a DidCodec specifically for the InputOutputControlByIdentifier service.
-      Just like config[data_identifers], these codecs will be used to convert values to byte payload and vice-versa when sending/receiving data.
-      Since InputOutputControlByIdentifier supports composite codecs, it is possible to provide a sub-dictionary as a codec specifying the bitmasks.
-    * type `input_output`: dict
-      Possible configuration values are:
-          - string : The string will be used as a pack/unpack string when processing the data
-          - DidCodec (class or instance) : The encode/decode method will be used to process the data
-          - dict : The dictionary entry indicates a composite DID. Three subkeys must be defined as:
-                  - codec : The codec, a string or a DidCodec class/instance
-                  - mask : A dictionary mapping the mask name with a bit
-                  - mask_size : An integer indicating on how many bytes must the mask be encode
+* ``tolerate_zero_padding`` : bool
+  When True, ignores trailing zeros in response data to prevent InvalidResponseException if the protocol uses zero-padding.
 
-      The special dictionnary key `default` can be used to specify a fallback codec if an operation is done on a codec not part of the configuration.
-      Useful for scanning a range of DID
+* ``ignore_all_zero_dtc`` : bool
+  For ReadDTCInformation service, skips DTCs with an ID of 0x000000, useful if the protocol uses zero-padding. See online documentation for further details.
 
-    * param `tolerate_zero_padding`:
-      This value will be passed to the services `interpret_response` when the parameter is supported as in ReadDataByIdentifier, ReadDTCInformation.
-      It has to ignore trailing zeros in the response data to avoid falsely raising InvalidResponseException if the underlying protocol uses some zero-padding.
-    * type `tolerate_zero_padding`: bool
+* ``server_address_format`` : int
+  Specifies the MemoryLocation address format to use when not explicitly provided.
 
-    * param `ignore_all_zero_dtc`
-      This value is used with the ReadDTCInformation service when reading DTCs. It will skip any DTC that has an ID of 0x000000.
-      If the underlying protocol uses zero-padding, it may generate a valid response data of all zeros. This parameter is different from config['tolerate_zero_padding'].
-      Read `https://udsoncan.readthedocs.io/en/latest/udsoncan/client.html#configuration` for more info.
-    * type `ignore_all_zero_dtc`: bool
+* ``server_memorysize_format`` : int
+  Specifies the MemoryLocation memory size format to use when not explicitly provided.
 
-    * param `server_address_format`:
-      The MemoryLocation server_address_format is the value to use when none is specified explicitly for methods expecting a parameter of type MemoryLocation.
-    * type `server_address_format`: int
+* ``extended_data_size`` : dict[int, int]
+  Specifies DTC extended data record sizes.
+  Example:
+    ```
+    {
+        0x123456: 45,  # DTC 0x123456 has an extended data size of 45 bytes.
+        0x123457: 23   # DTC 0x123457 has an extended data size of 23 bytes.
+    }
+    ```
 
-    * param `server_memorysize_format`:
-      The MemoryLocation server_memorysize_format is the value to use when none is specified explicitly for methods expecting a parameter of type MemoryLocation
-    * type `server_memorysize_format`: int
+* ``dtc_snapshot_did_size`` : int
+  Number of bytes for encoding data identifiers in ReadDTCInformation (default: 2).
 
-    * param `extended_data_size`:
-      This is the description of all the DTC extended data record sizes.
-      This value is used to decode the server response when requesting a DTC extended data.
+* ``standard_version`` : int
+  UDS standard version, valid values are 2006, 2013, or 2020 (default: 2020).
 
-      The value must be specified as follows
-        |  config['extended_data_size'] = {
-        |      0x123456 : 45, # Extended data for DTC 0x123456 is 45 bytes long
-        |      0x123457 : 23 # Extended data for DTC 0x123457 is 23 bytes long
-        |  }
+* ``request_timeout`` : float
+  Maximum wait time (in seconds) for a response after sending a request. Defaults to 5 seconds. Set to None to wait indefinitely.
 
-    * type `extended_data_size`: dict[int] = int
+* ``p2_timeout`` : float
+  Maximum wait time (in seconds) for a first response after sending a request, per ISO 14229-2:2013 (default: 1 second).
 
-    * param `dtc_snapshot_did_size`:
-      The number of bytes used to encode a data identifier specifically for ReadDTCInformation subfunction reportDTCSnapshotRecordByDTCNumber and reportDTCSnapshotRecordByRecordNumber.
-      The UDS standard does not specify a DID size although all other services expect a DID encoded over 2 bytes (16 bits). Default value of 2
-    * type `dtc_snapshot_did_size`: int
+* ``p2_star_timeout`` : float
+  Maximum wait time (in seconds) after receiving a requestCorrectlyReceived-ResponsePending (0x78) response from the server (default: 5 seconds).
 
-    * param `standard_version`:
-      The standard version to use, valid values are : 2006, 2013, 2020. Default value is 2020
-    * type `standard_version`: int
-    * param `request_timeout`:
-      Maximum amount of time in seconds to wait for a response of any kind, positive or negative, after sending a request.
-      After this time is elapsed, a TimeoutException will be raised regardless of other timeouts value or previous client responses.
-      In particular even if the server requests that the client wait, by returning response requestCorrectlyReceived-ResponsePending (0x78), this timeout will still trigger.
-      If you wish to disable this behaviour and have your server wait for as long as it takes for the ECU to finish whatever activity you have requested, set this value to None.
-      Default value of 5
-    * type `request_timeout`: float
-    * param `p2_timeout`:
-      Maximum amount of time in seconds to wait for a first response (positive, negative, or NRC 0x78).
-      After this time is elapsed, a TimeoutException will be raised if no response has been received.
-      See ISO 14229-2:2013 (UDS Session Layer Services) for more details. Default value of 1
-    * type `p2_timeout`: float
-    * param `p2_star_timeout`:
-      Maximum amount of time in seconds to wait for a response (positive, negative, or NRC0x78) after the reception of a negative response with code 0x78 (requestCorrectlyReceived-ResponsePending).
-      After this time is elapsed, a TimeoutException will be raised if no response has been received.
-      See ISO 14229-2:2013 (UDS Session Layer Services) for more details. Default value of 5
-    * type `p2_star_timeout`: float
-    * param `use_server_timing`:
-      When using 2013 standard or above, the server is required to provide its P2 and P2* timing values with a DiagnosticSessionControl request. By setting this parameter to True, the value received from the server will be used.
-      When False, these timing values will be ignored and local configuration timing will be used. Note that no timeout value can exceed the config['request_timeout'] as it is meant to avoid the client from hanging for too long.
-      This parameter has no effect when config['standard_version'] is set to 2006.
-      Default value is True
-    * type `use_server_timing`: bool
+* ``use_server_timing`` : bool
+  When True, uses P2 and P2* timing values provided by the server for sessions with 2013 or later standards. Defaults to True.
         """
+
         config = cast(ClientConfig, {
             'exception_on_negative_response': exception_on_negative_response,
             'exception_on_invalid_response': exception_on_invalid_response,
@@ -394,7 +397,7 @@ Load PDX file and update UDS configuration with DID Codec
 
     @keyword("Set UDS Config")
     def set_config(self, config, device_name="default"):
-        '''
+        """
 This method sets the UDS config.
 
 **Arguments:**
@@ -408,7 +411,7 @@ This method sets the UDS config.
   / *Type*: Configuration /
 
   Returns the new UDS configuration created by `create_configure` or the default config if none is provided.
-        '''
+        """
         uds_device = self.__device_check(device_name)
         uds_device.client.set_configs(config)
 
