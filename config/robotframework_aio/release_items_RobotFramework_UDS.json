@@ -117,6 +117,18 @@ for more details.
 Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
 for more details.
 "
+                                       ],
+                      "0.13.2." : [
+"
+**Added new keywords**
+
+* ``Send UDS Request By Name``
+This keyword allows users to send requests without needing to know the specific UDS command type associated with a service,
+as the keyword automatically detects and handles it.
+
+Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
+for more details.
+"
                                        ]
                  }
 }

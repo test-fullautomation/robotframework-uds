@@ -10,13 +10,14 @@ from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from .DiagnosticServices import DiagnosticServices, PDXCodec
+from .DiagnosticServices import DiagnosticServices, PDXCodec, ServiceID
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
 from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
+from enum import Enum
 import udsoncan
 
 class UDSDeviceManager:
@@ -1591,3 +1592,141 @@ Sends a request for the IOControl service by name of input output control servic
         # Process io control request and get response data 
         response = self.io_control(data_id, control_param, value, mask, device_name)
         return response
+
+    @keyword("Send UDS Request By Name")
+    def send_uds_request_by_name(self, service_name = None, device_name="default", **kwargs):
+      """
+Sends a UDS request by the name of the specified diagnostic service.
+
+**Arguments:**
+
+* ``service_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: None /
+
+  Name of the diagnostic service to request.
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+
+  Name of the device to which the UDS request will be sent.
+
+* ``kwargs``
+
+  / *Condition*: optional / *Type*: dict /
+
+  Additional parameters specific to certain services. Possible values include:
+
+  - ``reset_type``: (int) Reset type for ECU reset services.
+  - ``parameters``: (dict) Parameters for WRITE_DATA_BY_IDENTIFIER, INPUT_OUTPUT_CONTROL_BY_IDENTIFIER, and ROUTINE_CONTROL services.
+  - ``mask``: (any) Mask value for the INPUT_OUTPUT_CONTROL_BY_IDENTIFIER service.
+  - ``groups``: (int) Group identifiers for the CLEAR_DIAGNOSTIC_INFORMATION service (default: 0xFFFFFF).
+  - ``memory_selection``: (any) Memory selection for the CLEAR_DIAGNOSTIC_INFORMATION service.
+  - ``control_type``: (int) Control type for COMMUNICATION_CONTROL service.
+  - ``communication_type``: (int) Communication type for COMMUNICATION_CONTROL service.
+  - ``node_id``: (any) Node ID for COMMUNICATION_CONTROL service.
+  - ``setting_type``: (int) Setting type for CONTROL_DTC_SETTING service.
+  - ``data``: (any) Data for CONTROL_DTC_SETTING and TRANSFER_EXIT services.
+  - ``session_type``: (int) Session type for DIAGNOSTIC_SESSION_CONTROL service.
+  - ``subfunction``: (int) Subfunction for READ_DTC_INFORMATION service.
+  - ``status_mask``: (any) Status mask for READ_DTC_INFORMATION service.
+  - ``severity_mask``: (any) Severity mask for READ_DTC_INFORMATION service.
+  - ``dtc``: (any) Diagnostic Trouble Code (DTC) for READ_DTC_INFORMATION service.
+  - ``snapshot_record_number``: (any) Snapshot record number for READ_DTC_INFORMATION service.
+  - ``extended_data_record_number``: (any) Extended data record number for READ_DTC_INFORMATION service.
+  - ``extended_data_size``: (any) Extended data size for READ_DTC_INFORMATION service.
+  - ``memory_location``: (any) Memory location for READ_MEMORY_BY_ADDRESS, REQUEST_DOWNLOAD, REQUEST_UPLOAD, and WRITE_MEMORY_BY_ADDRESS services.
+  - ``dfi``: (any) Data Format Identifier (DFI) for REQUEST_DOWNLOAD and REQUEST_UPLOAD services.
+  - ``level``: (any) Security level for SECURITY_ACCESS service.
+  - ``seed_params``: (any) Seed parameters for SECURITY_ACCESS service.
+  - ``sequence_number``: (int) Sequence number for TRANSFER_DATA service.
+  - ``data``: (any) Data for TRANSFER_DATA and TRANSFER_EXIT services.
+
+**Returns:**
+
+* ``response``
+
+  / *Type*: Response /
+
+  The decoded response data from the service request.
+"""
+
+      response = None
+      # Verify the device is available
+      uds_device = self.__device_check(device_name)
+
+      if service_name == None:
+          logger.info(f"Sending to tester present service")
+          response = self.tester_present(device_name)
+
+      # Verify the service is available
+      diag_service = uds_device.diag_service_db.get_diag_service_by_name([service_name])[0]
+      service_id = diag_service.request.parameters[1].coded_value
+
+      if service_id == ServiceID.ECU_RESET:
+          logger.info(f"Sending {service_name} to ECU reset service")
+          logger.info(f"Reset type: {kwargs.get('reset_type', 1)}")
+          response = self.ecu_reset(kwargs.get("reset_type", 1), device_name)
+      elif service_id == ServiceID.READ_DATA_BY_IDENTIFIER:
+          logger.info(f"Sending {service_name} to read data by name service")
+          response = self.read_data_by_name([service_name], device_name)
+      elif service_id == ServiceID.WRITE_DATA_BY_IDENTIFIER:
+          logger.info(f"Sending {service_name} to write data by name service")
+          logger.info(f"Parameter: {kwargs.get('parameters', None)}")
+          response = self.write_data_by_name(service_name, kwargs.get("parameters", None), device_name)
+      elif service_id == ServiceID.INPUT_OUTPUT_CONTROL_BY_IDENTIFIER:
+          logger.info(f"Sending {service_name} to io control by name service")
+          logger.info(f"Parameter: {kwargs.get('parameters', None)}. Mask: {kwargs.get('mask', None)}")
+          response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name)
+      elif service_id == ServiceID.ROUTINE_CONTROL:
+          logger.info(f"Sending {service_name} to routine control by name service")
+          logger.info(f"Parameter: {kwargs.get('parameters', None)}")
+          response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name)
+
+      # Full support not yet available.
+      elif service_id == ServiceID.CLEAR_DIAGNOSTIC_INFORMATION:
+          logger.info(f"Sending {service_name} to clear diagnostic information service")
+          response = self.clear_diagnostic_information( kwargs.get("groups", 0xFFFFFF), kwargs.get("memory_selection", None), device_name)
+      elif service_id == ServiceID.COMMUNICATION_CONTROL:
+          logger.info(f"Sending {service_name} to communication control service")
+          response = self.communication_control(kwargs.get("control_type", 0), kwargs.get("communication_type", 0), kwargs.get("node_id", None), device_name)
+      elif service_id == ServiceID.CONTROL_DTC_SETTING:
+          logger.info(f"Sending {service_name} to control dtc setting service")
+          response = self.control_dtc_setting(kwargs.get("setting_type", 0), kwargs.get("data", None), device_name)
+      elif service_id == ServiceID.DIAGNOSTIC_SESSION_CONTROL:
+          logger.info(f"Sending {service_name} to diagnostic session control service")
+          response = self.diagnostic_session_control(kwargs.get("session_type", 0), device_name)
+      elif service_id == ServiceID.READ_DTC_INFORMATION:
+          logger.info(f"Sending {service_name} to read dtc information service")
+          response = self.read_dtc_information(kwargs.get("subfunction", 0),
+                                               kwargs.get("status_mask", None),
+                                               kwargs.get("severity_mask", None),
+                                               kwargs.get("dtc", None),
+                                               kwargs.get("snapshot_record_number", None),
+                                               kwargs.get("extended_data_record_number", None),
+                                               kwargs.get("extended_data_size", None),
+                                               kwargs.get("memory_selection", None),
+                                               device_name)
+      elif service_id == ServiceID.READ_MEMORY_BY_ADDRESS:
+          logger.info(f"Sending {service_name} to read memory by address service")
+          response = self.read_memory_by_address(kwargs.get("memory_location", None), device_name)
+      elif service_id == ServiceID.REQUEST_DOWNLOAD:
+          logger.info(f"Sending {service_name} to request download service")
+          response = self.request_download(kwargs.get("memory_location", None), kwargs.get("dfi", None), device_name)
+      elif service_id == ServiceID.REQUEST_UPLOAD:
+          logger.info(f"Sending {service_name} to request upload service")
+          response = self.request_upload(kwargs.get("memory_location", None), kwargs.get("dfi", None), device_name)
+      elif service_id == ServiceID.SECURITY_ACCESS:
+          logger.info(f"Sending {service_name} to security access service")
+          response = self.security_access(kwargs.get("level", None), kwargs.get("seed_params", None), device_name)
+      elif service_id == ServiceID.TRANSFER_DATA:
+          logger.info(f"Sending {service_name} to transfer data service")
+          response = self.transfer_data(kwargs.get("sequence_number", 0), kwargs.get("data", None), device_name)
+      elif service_id == ServiceID.TRANSFER_EXIT:
+          logger.info(f"Sending {service_name} to transfer exit service")
+          response = self.request_transfer_exit(kwargs.get("data", None), device_name)
+      elif service_id == ServiceID.WRITE_MEMORY_BY_ADDRESS:
+          logger.info(f"Sending {service_name} to write memory by address service")
+          response = self.write_memory_by_address(kwargs.get("memory_location", None), kwargs.get("data", None), device_name)
+      return response
