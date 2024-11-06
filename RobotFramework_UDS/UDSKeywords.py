@@ -10,7 +10,7 @@ from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from .DiagnosticServices import DiagnosticServices
+from .DiagnosticServices import DiagnosticServices, PDXCodec
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
@@ -190,7 +190,7 @@ class UDSKeywords:
     @keyword("Load PDX")
     def load_pdx(self, pdx_file, variant, device_name="default"):
         """
-Load PDX file and update UDS configuration with DID Codec
+Load PDX file
 
 **Arguments:**
 
@@ -206,17 +206,6 @@ Load PDX file and update UDS configuration with DID Codec
         """
         self.__device_check(device_name)
         self.uds_manager.uds_device[device_name].diag_service_db = DiagnosticServices(pdx_file, variant)
-
-        # Get the did_codec from pdx file for services and update to UDS config
-        # Read Data By Identifier
-        did_codec_readdatabyidentifier = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X22)
-        self.uds_manager.uds_device[device_name].config['data_identifiers'].update(did_codec_readdatabyidentifier)
-        # Write Data By Identifier
-        did_codec_writedatabyidentifier = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X2E)
-        self.uds_manager.uds_device[device_name].config['data_identifiers'].update(did_codec_writedatabyidentifier)
-        # Input Output Control
-        did_codec_iocontrol = self.uds_manager.uds_device[device_name].diag_service_db.get_did_codec(0X2F)
-        self.uds_manager.uds_device[device_name].config['input_output'].update(did_codec_iocontrol)
 
     @keyword("Create UDS Config")
     def create_config(self,
@@ -808,6 +797,11 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
+        SID_RQ = 34 # The request id of read data by identifier
+
+        # Get the did_codec from pdx file and set it to uds config
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        uds_device.config['data_identifiers'].update(did_codec)
 
         response = uds_device.client.read_data_by_identifier(data_id_list)
         for i in range(0, len(data_id_list)):
@@ -1163,6 +1157,11 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         """
         logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
+        SID_RQ = 46 # The request id of write data by identifier
+
+        # Get the did_codec from pdx file and set it to uds config
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        uds_device.config['data_identifiers'].update(did_codec)
 
         response = uds_device.client.write_data_by_identifier(did, value)
         logger.info(f"DID echo: {response.service_data.did_echo}")
@@ -1581,9 +1580,13 @@ Sends a request for the IOControl service by name of input output control servic
         uds_device = self.__device_check(device_name)
 
         # Verify the service is available then get did and control_param from it 
-        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([io_control_name])
-        data_id = diag_service_list[0].request.parameters[1].coded_value
-        control_param = diag_service_list[0].request.parameters[2].coded_value
+        io_control_service = uds_device.diag_service_db.get_diag_service_by_name([io_control_name])[0]
+        data_id = io_control_service.request.parameters[1].coded_value
+        control_param = io_control_service.request.parameters[2].coded_value
+
+        # Update uds config of 'input_output' with did codec
+        did_codec = PDXCodec(io_control_service)
+        uds_device.config['input_output'].update({data_id: did_codec})
 
         # Process io control request and get response data 
         response = self.io_control(data_id, control_param, value, mask, device_name)
