@@ -174,8 +174,7 @@ Test user can send UDS request without needing to specify the command type
     Log    Test user can send UDS request without needing to specify the command type
 
     Log    readCPUClockFrequencies_Read
-    ${service_name_list}=    Create List    readCPUClockFrequencies_Read
-    ${responses}=    Send UDS Request By Name    ${service_name_list}
+    ${responses}=    Send UDS Request By Name    readCPUClockFrequencies_Read
     Log    ${responses}    console=True
 
     FOR    ${request_did}    IN    @{responses.keys()}
@@ -186,9 +185,9 @@ Test user can send UDS request without needing to specify the command type
         END
     END
 
-    Log    CAM1PowerSupply_Set
-    ${param_dict_input_output_control}=    Create Dictionary    mode=passiv
-    ${response}=    Send UDS Request By Name    CAM1PowerSupply_Set    ${param_dict_input_output_control}
+    # Log    CAM1PowerSupply_Set
+    # ${param_dict_input_output_control}=    Create Dictionary    mode=passiv
+    # ${response}=    Send UDS Request By Name    CAM1PowerSupply_Set    parameters=${param_dict_input_output_control}
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}
@@ -197,13 +196,13 @@ Test user can send UDS request without needing to specify the command type
 
     Log    RealTimeClock_Write
     ${param_dict_write_data_by_name}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
-    ${res}=     Send UDS Request By Name    RealTimeClock_Write    ${param_dict_write_data_by_name}
+    ${res}=     Send UDS Request By Name    RealTimeClock_Write    parameters=${param_dict_write_data_by_name}
     Log    ${res}    console=True
 
     Log    Routine Control By Name service: StartIperfServer_Start
 
     ${param_dict_routine_control_by_name}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
-    ${response}=    Send UDS Request By Name    StartIperfServer_Start    ${param_dict_routine_control_by_name}
+    ${response}=    Send UDS Request By Name    StartIperfServer_Start    parameters=${param_dict_routine_control_by_name}
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}

@@ -1665,42 +1665,42 @@ Sends a UDS request by the name of the specified diagnostic service.
 
       # Verify the service is available
       diag_service = uds_device.diag_service_db.get_diag_service_by_name([service_name])[0]
-      service_id = diag_service.request.parameters[1].coded_value
+      service_id = diag_service.request.parameters[0].coded_value
 
-      if service_id == ServiceID.ECU_RESET:
+      if service_id == ServiceID.ECU_RESET.value:
           logger.info(f"Sending {service_name} to ECU reset service")
           logger.info(f"Reset type: {kwargs.get('reset_type', 1)}")
           response = self.ecu_reset(kwargs.get("reset_type", 1), device_name)
-      elif service_id == ServiceID.READ_DATA_BY_IDENTIFIER:
+      elif service_id == ServiceID.READ_DATA_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to read data by name service")
           response = self.read_data_by_name([service_name], device_name)
-      elif service_id == ServiceID.WRITE_DATA_BY_IDENTIFIER:
+      elif service_id == ServiceID.WRITE_DATA_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to write data by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}")
           response = self.write_data_by_name(service_name, kwargs.get("parameters", None), device_name)
-      elif service_id == ServiceID.INPUT_OUTPUT_CONTROL_BY_IDENTIFIER:
+      elif service_id == ServiceID.INPUT_OUTPUT_CONTROL_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to io control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}. Mask: {kwargs.get('mask', None)}")
           response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name)
-      elif service_id == ServiceID.ROUTINE_CONTROL:
+      elif service_id == ServiceID.ROUTINE_CONTROL.value:
           logger.info(f"Sending {service_name} to routine control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}")
           response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name)
 
       # Full support not yet available.
-      elif service_id == ServiceID.CLEAR_DIAGNOSTIC_INFORMATION:
+      elif service_id == ServiceID.CLEAR_DIAGNOSTIC_INFORMATION.value:
           logger.info(f"Sending {service_name} to clear diagnostic information service")
           response = self.clear_diagnostic_information( kwargs.get("groups", 0xFFFFFF), kwargs.get("memory_selection", None), device_name)
-      elif service_id == ServiceID.COMMUNICATION_CONTROL:
+      elif service_id == ServiceID.COMMUNICATION_CONTROL.value:
           logger.info(f"Sending {service_name} to communication control service")
           response = self.communication_control(kwargs.get("control_type", 0), kwargs.get("communication_type", 0), kwargs.get("node_id", None), device_name)
-      elif service_id == ServiceID.CONTROL_DTC_SETTING:
+      elif service_id == ServiceID.CONTROL_DTC_SETTING.value:
           logger.info(f"Sending {service_name} to control dtc setting service")
           response = self.control_dtc_setting(kwargs.get("setting_type", 0), kwargs.get("data", None), device_name)
-      elif service_id == ServiceID.DIAGNOSTIC_SESSION_CONTROL:
+      elif service_id == ServiceID.DIAGNOSTIC_SESSION_CONTROL.value:
           logger.info(f"Sending {service_name} to diagnostic session control service")
           response = self.diagnostic_session_control(kwargs.get("session_type", 0), device_name)
-      elif service_id == ServiceID.READ_DTC_INFORMATION:
+      elif service_id == ServiceID.READ_DTC_INFORMATION.value:
           logger.info(f"Sending {service_name} to read dtc information service")
           response = self.read_dtc_information(kwargs.get("subfunction", 0),
                                                kwargs.get("status_mask", None),
@@ -1711,25 +1711,25 @@ Sends a UDS request by the name of the specified diagnostic service.
                                                kwargs.get("extended_data_size", None),
                                                kwargs.get("memory_selection", None),
                                                device_name)
-      elif service_id == ServiceID.READ_MEMORY_BY_ADDRESS:
+      elif service_id == ServiceID.READ_MEMORY_BY_ADDRESS.value:
           logger.info(f"Sending {service_name} to read memory by address service")
           response = self.read_memory_by_address(kwargs.get("memory_location", None), device_name)
-      elif service_id == ServiceID.REQUEST_DOWNLOAD:
+      elif service_id == ServiceID.REQUEST_DOWNLOAD.value:
           logger.info(f"Sending {service_name} to request download service")
           response = self.request_download(kwargs.get("memory_location", None), kwargs.get("dfi", None), device_name)
-      elif service_id == ServiceID.REQUEST_UPLOAD:
+      elif service_id == ServiceID.REQUEST_UPLOAD.value:
           logger.info(f"Sending {service_name} to request upload service")
           response = self.request_upload(kwargs.get("memory_location", None), kwargs.get("dfi", None), device_name)
-      elif service_id == ServiceID.SECURITY_ACCESS:
+      elif service_id == ServiceID.SECURITY_ACCESS.value:
           logger.info(f"Sending {service_name} to security access service")
           response = self.security_access(kwargs.get("level", None), kwargs.get("seed_params", None), device_name)
-      elif service_id == ServiceID.TRANSFER_DATA:
+      elif service_id == ServiceID.TRANSFER_DATA.value:
           logger.info(f"Sending {service_name} to transfer data service")
           response = self.transfer_data(kwargs.get("sequence_number", 0), kwargs.get("data", None), device_name)
-      elif service_id == ServiceID.TRANSFER_EXIT:
+      elif service_id == ServiceID.TRANSFER_EXIT.value:
           logger.info(f"Sending {service_name} to transfer exit service")
           response = self.request_transfer_exit(kwargs.get("data", None), device_name)
-      elif service_id == ServiceID.WRITE_MEMORY_BY_ADDRESS:
+      elif service_id == ServiceID.WRITE_MEMORY_BY_ADDRESS.value:
           logger.info(f"Sending {service_name} to write memory by address service")
           response = self.write_memory_by_address(kwargs.get("memory_location", None), kwargs.get("data", None), device_name)
       return response
