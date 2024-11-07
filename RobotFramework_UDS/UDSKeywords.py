@@ -17,7 +17,6 @@ from typing import cast
 from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
-from enum import Enum
 import udsoncan
 
 class UDSDeviceManager:
