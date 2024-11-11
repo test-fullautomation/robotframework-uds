@@ -185,9 +185,9 @@ Test user can send UDS request without needing to specify the command type
         END
     END
 
-    # Log    CAM1PowerSupply_Set
-    # ${param_dict_input_output_control}=    Create Dictionary    mode=passiv
-    # ${response}=    Send UDS Request By Name    CAM1PowerSupply_Set    parameters=${param_dict_input_output_control}
+    Log    CAM1PowerSupply_Set
+    ${param_dict_input_output_control}=    Create Dictionary    mode=passiv
+    ${response}=    Send UDS Request By Name    CAM1PowerSupply_Set    parameters=${param_dict_input_output_control}
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}
