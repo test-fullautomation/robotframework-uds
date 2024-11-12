@@ -307,10 +307,17 @@ class PDXCodec(DidCodec):
                 elif parameter_val and isinstance(parameter_val[0], dict):
                     parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_val[0])
 
-                # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes:
+                parameters = self.service.request.parameters
+                pos_param = 0
+                for par in parameters:
+                    if par.parameter_type == "CODED-CONST":
+                        pos_param = pos_param + (par.get_static_bit_length() >> 3)
+                # Remove all CODED-CONST from encoded messages:
                 # SID: 1 byte
                 # DataIdentifier: 2 bytes
-                encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
+                # ControlParam (IC Control Service): 1 byte
+                # ... 
+                encode_message = bytes(self.service.encode_request(**parameter_dict))[pos_param:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")
