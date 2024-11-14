@@ -1,5 +1,6 @@
 from robot.api import logger
 from udsoncan.common.DidCodec import DidCodec
+from enum import Enum
 import odxtools
 import re
 
@@ -45,7 +46,7 @@ Recursive convert sub parameters in given request to correct data type
         try:
             org_val = req_sub_param[odx_param.short_name]
             # process byte / byte string data
-            if isinstance(org_val, bytes):
+            if isinstance(org_val, (bytes, bytearray)):
                 # convert byte to hex data
                 org_val = org_val.hex()
             elif isinstance(org_val, str):
@@ -274,24 +275,49 @@ class PDXCodec(DidCodec):
 
     def decode(self, string_bin: bytes):
         parameters = self.service.positive_responses[0].parameters
-        response_prefix_hex = "".join([hex(parameters[0].coded_value).replace("0x", ""), hex(parameters[1].coded_value).replace("0x", "")])
+        response_prefix_hex = ""
+        # Get all CODED-CONST and insert to response message for decoding
+        # SID_PR
+        # DataIdentifier
+        # ControlParam (IC Control Service)
+        # ... 
+        for par in parameters:
+            if par.parameter_type == "CODED-CONST":
+                response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
 
         string_hex = "".join([response_prefix_hex, string_bin.hex()])
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
         return response
 
-    def encode(self, parameter_dict):
+    def encode(self, *parameter_val, **parameter_dict):
+        # encode() is called by WriteDataByIdentifier only pass value as positional argument(s)
+        # request parameter dictionary is passed as first positional argument parameter_val[0]
+
+        # encode is called by InputOutputControlByIdentifier pass value as positional or keyword argument(s)
+        # request parameter dictionary is passed as keyword arguments **parameter_dict
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
         try:
-            if not parameter_dict:
+            if (not parameter_val) and (not parameter_dict):
                 encode_message = self.service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
-                parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                if parameter_dict:
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                elif parameter_val and isinstance(parameter_val[0], dict):
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_val[0])
 
-                # Remove the first 3 bytes since the UDS library automatically adds the first 3 bytes for the DID.
-                encode_message = bytes(self.service.encode_request(**parameter_dict))[3:]
+                parameters = self.service.request.parameters
+                pos_param = 0
+                for par in parameters:
+                    if par.parameter_type == "CODED-CONST":
+                        pos_param = pos_param + (par.get_static_bit_length() >> 3)
+                # Remove all CODED-CONST from encoded messages:
+                # SID: 1 byte
+                # DataIdentifier: 2 bytes
+                # ControlParam (IC Control Service): 1 byte
+                # ... 
+                encode_message = bytes(self.service.encode_request(**parameter_dict))[pos_param:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")
@@ -305,3 +331,24 @@ class PDXCodec(DidCodec):
             return (bit_length >> 3) - 3
         else:
             raise DidCodec.ReadAllRemainingData
+
+class ServiceID(Enum):
+    DIAGNOSTIC_SESSION_CONTROL = 0x10
+    ECU_RESET = 0x11
+    CLEAR_DIAGNOSTIC_INFORMATION = 0x14
+    READ_DTC_INFORMATION = 0x19
+    READ_DATA_BY_IDENTIFIER = 0x22
+    READ_MEMORY_BY_ADDRESS = 0x23
+    SECURITY_ACCESS = 0x27
+    COMMUNICATION_CONTROL = 0x28
+    READ_DATA_BY_PERIODIC_ID = 0x2A
+    WRITE_DATA_BY_IDENTIFIER = 0x2E
+    INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0x2F
+    ROUTINE_CONTROL = 0x31
+    REQUEST_DOWNLOAD = 0x34
+    REQUEST_UPLOAD = 0x35
+    TRANSFER_DATA = 0x36
+    TRANSFER_EXIT = 0x37
+    WRITE_MEMORY_BY_ADDRESS = 0x3D
+    TESTER_PRESENT = 0x3E
+    CONTROL_DTC_SETTING = 0x85

@@ -90,6 +90,17 @@ Test user can use Read Data By Name service on ECU
         END
     END
 
+Test user can use Input Output Control By Name service on ECU
+    Log    Input Output Control By Name service: CAM1PowerSupply_Set
+
+    ${param_dict}=    Create Dictionary    mode=passiv
+    ${response}=    Input Output Control By Name    CAM1PowerSupply_Set    ${param_dict}
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+    
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 
@@ -157,4 +168,43 @@ Test Read List Services
         ${list_service}=    Create List    ${service_name}
         ${res}=    Read Data By Name   ${list_service}
         Log    ${res}    console=True
+    END
+
+Test user can send UDS request without needing to specify the command type
+    Log    Test user can send UDS request without needing to specify the command type
+
+    Log    readCPUClockFrequencies_Read
+    ${responses}=    Send UDS Request By Name    readCPUClockFrequencies_Read
+    Log    ${responses}    console=True
+
+    FOR    ${request_did}    IN    @{responses.keys()}
+        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+        ${response}=    Set Variable    ${responses["${request_did}"]}
+        FOR    ${item}    IN    @{response.keys()}
+            Log    ${item} : ${response["${item}"]}    console=True
+        END
+    END
+
+    Log    CAM1PowerSupply_Set
+    ${param_dict_input_output_control}=    Create Dictionary    mode=passiv
+    ${response}=    Send UDS Request By Name    CAM1PowerSupply_Set    parameters=${param_dict_input_output_control}
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+
+    Log    RealTimeClock_Write
+    ${param_dict_write_data_by_name}=    Create Dictionary    Day=26    Month=September    Year=2024    Hour=10    Second=45    Minute=0
+    ${res}=     Send UDS Request By Name    RealTimeClock_Write    parameters=${param_dict_write_data_by_name}
+    Log    ${res}    console=True
+
+    Log    Routine Control By Name service: StartIperfServer_Start
+
+    ${param_dict_routine_control_by_name}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
+    ${response}=    Send UDS Request By Name    StartIperfServer_Start    parameters=${param_dict_routine_control_by_name}
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
     END
