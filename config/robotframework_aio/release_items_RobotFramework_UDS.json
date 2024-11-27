@@ -110,12 +110,14 @@ for more details.
 * ``Write Data By Name``
 * ``Routine Control By Name``
 * ``Input Output Control By Name``
-* ``Write Data By Name`` features.
+* ``Write Data By Name``
 * ``Get Encoded Request Message``
 * ``Get Decoded Response Message``
 * ``Send UDS Request By Name``
-This keyword allows users to send requests without needing to know the specific UDS command type associated with a service,
-as the keyword automatically detects and handles it.
+
+The ``Send UDS Request By Name`` keyword enables users to send requests 
+without requiring knowledge of the specific UDS command type associated 
+with a service, as it automatically detects and handles it.
 
 Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
 for more details.
