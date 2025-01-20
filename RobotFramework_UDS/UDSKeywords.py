@@ -213,6 +213,15 @@ Establishes a connection with an ECU.
             if isinstance(activation_type, str):
                 activation_type = int(activation_type)
 
+            if isinstance(protocol_version, str):
+                protocol_version = int(protocol_version)
+
+            if isinstance(tcp_port, str):
+                tcp_port = int(tcp_port)
+
+            if isinstance(udp_port, str):
+                udp_port = int(udp_port)
+
             connector = DoIPClient(ecu_ip_address,
                               ecu_logical_address,
                               tcp_port,
