@@ -801,6 +801,14 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
+
+        # Read data by identifier without PDX file
+        # User needs to update the configuration to properly decode the response
+        # e.g. uds_device.config['data_identifiers'].update(did_codec)
+        if uds_device.diag_service_db is None:
+            response = uds_device.client.read_data_by_identifier(data_id_list)
+            return response
+
         SID_RQ = 34 # The request id of read data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
@@ -1161,6 +1169,14 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         """
         logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
+
+        # Write data by identifier without PDX file
+        # User needs to update the configuration to properly encode/decode the request/response
+        # e.g. uds_device.config['data_identifiers'].update(did_codec)
+        if uds_device.diag_service_db is None:
+            response = uds_device.client.write_data_by_identifier(did, value)
+            return response
+
         SID_RQ = 46 # The request id of write data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
