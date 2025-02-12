@@ -54,6 +54,14 @@ class UDSKeywords:
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
+    def __convert_string_to_int(self, value):
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                raise ValueError(f"Invalid integer string: {value}")
+        return value
+
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, device_name="default", config=default_client_config, close_connection=False):
         """
@@ -204,14 +212,12 @@ Establishes a connection with an ECU.
             if client_ip_address != None:
                 client_ip_address = client_ip_address.strip()
 
-            if isinstance(ecu_logical_address, str):
-                ecu_logical_address = int(ecu_logical_address)
-
-            if isinstance(client_logical_address, str):
-                client_logical_address = int(client_logical_address)
-
-            if isinstance(activation_type, str):
-                activation_type = int(activation_type)
+            ecu_logical_address = self.__convert_string_to_int(ecu_logical_address)
+            client_logical_address = self.__convert_string_to_int(client_logical_address)
+            activation_type = self.__convert_string_to_int(activation_type)
+            protocol_version = self.__convert_string_to_int(protocol_version)
+            tcp_port = self.__convert_string_to_int(tcp_port)
+            udp_port = self.__convert_string_to_int(udp_port)
 
             connector = DoIPClient(ecu_ip_address,
                               ecu_logical_address,
@@ -801,6 +807,14 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
+
+        # Read data by identifier without PDX file
+        # User needs to update the configuration to properly decode the response
+        # e.g. uds_device.config['data_identifiers'].update(did_codec)
+        if uds_device.diag_service_db is None:
+            response = uds_device.client.read_data_by_identifier(data_id_list)
+            return response
+
         SID_RQ = 34 # The request id of read data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
@@ -1161,6 +1175,14 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         """
         logger.info(f"Service DID: {did}")
         uds_device = self.__device_check(device_name)
+
+        # Write data by identifier without PDX file
+        # User needs to update the configuration to properly encode/decode the request/response
+        # e.g. uds_device.config['data_identifiers'].update(did_codec)
+        if uds_device.diag_service_db is None:
+            response = uds_device.client.write_data_by_identifier(did, value)
+            return response
+
         SID_RQ = 46 # The request id of write data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
