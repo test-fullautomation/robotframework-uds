@@ -54,6 +54,14 @@ class UDSKeywords:
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
+    def __convert_string_to_int(self, value):
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                raise ValueError(f"Invalid integer string: {value}")
+        return value
+
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, device_name="default", config=default_client_config, close_connection=False):
         """
@@ -204,23 +212,12 @@ Establishes a connection with an ECU.
             if client_ip_address != None:
                 client_ip_address = client_ip_address.strip()
 
-            if isinstance(ecu_logical_address, str):
-                ecu_logical_address = int(ecu_logical_address)
-
-            if isinstance(client_logical_address, str):
-                client_logical_address = int(client_logical_address)
-
-            if isinstance(activation_type, str):
-                activation_type = int(activation_type)
-
-            if isinstance(protocol_version, str):
-                protocol_version = int(protocol_version)
-
-            if isinstance(tcp_port, str):
-                tcp_port = int(tcp_port)
-
-            if isinstance(udp_port, str):
-                udp_port = int(udp_port)
+            ecu_logical_address = self.__convert_string_to_int(ecu_logical_address)
+            client_logical_address = self.__convert_string_to_int(client_logical_address)
+            activation_type = self.__convert_string_to_int(activation_type)
+            protocol_version = self.__convert_string_to_int(protocol_version)
+            tcp_port = self.__convert_string_to_int(tcp_port)
+            udp_port = self.__convert_string_to_int(udp_port)
 
             connector = DoIPClient(ecu_ip_address,
                               ecu_logical_address,
