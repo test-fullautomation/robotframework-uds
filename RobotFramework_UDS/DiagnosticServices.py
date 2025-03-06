@@ -13,7 +13,8 @@ class DiagnosticServices:
         odxtools.exceptions.strict_mode = False
         self.odx_db = odxtools.load_pdx_file(self.pdx_file)
         odxtools.exceptions.strict_mode = True
-        self.diag_layer = self.odx_db.ecus[self.variant]
+        self.ecus = self.odx_db.ecus[self.variant]
+        self.diag_layers = self.odx_db.diag_layers[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
     @staticmethod
@@ -240,7 +241,7 @@ Retrieve the complete byte data from the response, as the UDS removes the servic
         positive_response_data = bytes.fromhex(hex(diag_service.positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + data.hex())
         return positive_response_data
 
-    def get_did_codec(self, service_id):
+    def get_did_codec(self, service_id, sub_services = None):
         """
 Retrieves a dictionary of DID codecs for a given diagnostic service ID.
 
@@ -261,13 +262,41 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
   A dictionary where the keys are DIDs
         """
         did_codec = {}
-
-        diag_services = self.diag_layer.service_groups[service_id]
+        diag_services = self.ecus.service_groups[service_id]
         for diag_service in diag_services:
-            did = diag_service.request.parameters[1].coded_value
-            did_codec[did] = PDXCodec(diag_service)
+            did = self.get_id_base_on_parameters_type(diag_service, sub_services)
+            if isinstance(did, int):
+                did_codec[did] = PDXCodec(diag_service)
+            elif isinstance(did, dict):
+                for data_id in list(did.keys()):
+                    did_codec[data_id] = PDXCodec(diag_service)
 
         return did_codec
+
+    @staticmethod
+    def get_id_base_on_parameters_type(main_service, dict_sub_services = None):
+        key_id_dict = {}
+        sub_services = []
+        rq_param = main_service.request.parameters[1]
+        parameter_type = rq_param.parameter_type
+        try:
+            if parameter_type == "TABLE-KEY":
+                sub_services = dict_sub_services[main_service.short_name]
+                for service in sub_services:
+                    try:
+                        key_id = rq_param.table.table_rows[service].key
+                        key_id_dict[key_id] = service
+                    except:
+                        logger.error(f"{service} is not exist in this service.")
+                    return key_id_dict
+            elif parameter_type == "CODED-CONST":
+                did = rq_param.coded_value
+                return did
+            else:
+                logger.info(f"Currently, this parameter type: {parameter_type} of service: {main_service.short_name} is not supported.")
+                return
+        except (TypeError, KeyError) as e:
+            logger.error(f"Required sub-services for {main_service.short_name} service.")
 
 class PDXCodec(DidCodec):
     def __init__(self, service):

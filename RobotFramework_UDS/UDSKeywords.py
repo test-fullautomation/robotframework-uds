@@ -786,7 +786,7 @@ Controls the communication baudrate by sending a LinkControl service request.
         return response
 
     @keyword("Read Data By Identifier")
-    def read_data_by_identifier(self, data_id_list: Union[int, List[int]], device_name="default"):
+    def read_data_by_identifier(self, data_id_list: Union[int, List[int]], device_name="default", sub_services = None):
         """
 Requests a value associated with a data identifier (DID) through the ReadDataByIdentifier service.
 
@@ -818,7 +818,7 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         SID_RQ = 34 # The request id of read data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ, sub_services)
         uds_device.config['data_identifiers'].update(did_codec)
 
         response = uds_device.client.read_data_by_identifier(data_id_list)
@@ -1459,14 +1459,21 @@ Get diagnostic service list by a list of service names.
         uds_device = self.__device_check(device_name)
         diag_service_list = []
         data_id_list = []
-
-        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name(service_name_list)
         did_mapping = {}
+        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name(service_name_list)
+
         for diag_service in diag_service_list:
-            data_id = diag_service.request.parameters[1].coded_value
-            data_id_list.append(data_id)
-            did_mapping[data_id] = diag_service.short_name
-        response = self.read_data_by_identifier(data_id_list, device_name)
+            data_id = uds_device.diag_service_db.get_id_base_on_parameters_type(diag_service, parameters)
+            if isinstance(data_id, int):
+                data_id_list.append(data_id)
+                did_mapping[data_id] = diag_service.short_name
+            elif isinstance(data_id, dict):
+                key_ids = list(data_id.keys())
+                data_id_list = data_id_list + key_ids
+                did_mapping[diag_service.short_name] = data_id
+            else:
+                pass
+        response = self.read_data_by_identifier(data_id_list, device_name, parameters)
 
         # return service name as key instead of did
         updated_response = {}
@@ -1527,23 +1534,28 @@ Get diagnostic service decoded positive response message.
         return decode_message
 
     @keyword("Write Data By Name")
-    def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
+    def write_data_by_name(self, service_name = None, value = None, device_name = "default", sub_service = None):
         """
 Requests to write a value associated with a name of service through the WriteDataByName service.
 
 **Arguments:**
 
-* ``did``
+* ``service_name``
 
-  / *Condition*: required / *Type*: int /
+  / *Condition*: required / *Type*: str /
 
-  The DID to write its value.
+  The name to write its value.
 
 * ``value``
 
   / *Condition*: required / *Type*: dict /
 
   Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
+
+* ``sub_services``
+  / *Condition*: optional / *Type*: str /
+
+  A dictionary representing the sub-services of the main service, formatted as: { 'Name of main service': ['Name of sub-service'] }
 
 **Returns:**
 
@@ -1558,9 +1570,9 @@ Requests to write a value associated with a name of service through the WriteDat
 
         # Get service from name and verify the service is available
         diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([service_name])
-        data_id = diag_service_list[0].request.parameters[1].coded_value
-
-        response = self.write_data_by_identifier(data_id, value, device_name)
+        dict_sub_service = { service_name: [sub_service] }
+        data_id = uds_device.diag_service_db.get_id_base_on_parameters_type(diag_service_list[0], dict_sub_service)
+        response = self.write_data_by_identifier(list(data_id.keys())[0], value, device_name)
         logger.info(f"Write {service_name} successful")
         return response
 
