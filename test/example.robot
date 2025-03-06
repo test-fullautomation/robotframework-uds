@@ -82,13 +82,27 @@ Test user can use Read Data By Name service on ECU
     ${responses}=    Read Data By Name    ${service_name_list}
     Log    ${responses}    console=True
 
-    FOR    ${request_did}    IN    @{responses.keys()}
-        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
-        ${response}=    Set Variable    ${responses["${request_did}"]}
-        FOR    ${item}    IN    @{response.keys()}
-            Log    ${item} : ${response["${item}"]}    console=True
-        END
-    END
+    # FOR    ${request_did}    IN    @{responses.keys()}
+    #     Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+    #     ${response}=    Set Variable    ${responses["${request_did}"]}
+    #     FOR    ${item}    IN    @{response.keys()}
+    #         Log    ${item} : ${response["${item}"]}    console=True
+    #     END
+    # END
+
+Test user can use Read Data By Name service if the service have sub-service on ECU
+    ${list_read}=    Create List    Identification_Read
+    ${responses}=    Read Data By Name    ${list_read}    parameters=CTSSWVersion
+
+    Log    ${responses}    console=True
+
+    # FOR    ${request_did}    IN    @{responses.keys()}
+    #     Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+    #     ${response}=    Set Variable    ${responses["${request_did}"]}
+    #     FOR    ${item}    IN    @{response.keys()}
+    #         Log    ${item} : ${response["${item}"]}    console=True
+    #     END
+    # END
 
 Test user can use Input Output Control By Name service on ECU
     Log    Input Output Control By Name service: CAM1PowerSupply_Set

@@ -16,7 +16,6 @@ class DiagnosticServices:
         self.ecus = self.odx_db.ecus[self.variant]
         self.diag_layers = self.odx_db.diag_layers[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
-
     @staticmethod
     def convert_sub_param(odx_param, req_sub_param):
         """
@@ -264,7 +263,7 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
         did_codec = {}
         diag_services = self.ecus.service_groups[service_id]
         for diag_service in diag_services:
-            did = self.get_id_base_on_parameters_type(diag_service, sub_services)
+            did = self.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_services)
             if isinstance(did, int):
                 did_codec[did] = PDXCodec(diag_service)
             elif isinstance(did, dict):
@@ -297,6 +296,28 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
                 return
         except (TypeError, KeyError) as e:
             logger.error(f"Required sub-services for {main_service.short_name} service.")
+
+    @staticmethod
+    def get_param_value_base_on_param_type(param, key_list = None):
+        dict_value = {}
+        try:
+            parameter_type = param.parameter_type
+            if parameter_type == "TABLE-KEY":
+                if key_list == None:
+                    for row in param.table.table_rows:
+                        dict_value[row.key] = row.short_name
+                else:
+                    for key in key_list:
+                        dict_value[param.table.table_rows[key].key] = key
+                return dict_value
+            elif parameter_type == "CODED-CONST":
+                value = param.coded_value
+                return value
+            else:
+                logger.info(f"Currently, this parameter type: {parameter_type} is not supported.")
+                return
+        except Exception as e:
+            logger.info(f"Reason: {e}")
 
 class PDXCodec(DidCodec):
     def __init__(self, service):
