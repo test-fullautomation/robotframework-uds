@@ -274,7 +274,7 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
                 did_codec[did] = PDXCodec(diag_service, did)
             elif isinstance(did, dict):
                 for data_id in list(did.keys()):
-                    did_codec[data_id] = PDXCodec(diag_service, data_id)
+                    did_codec[data_id] = PDXCodec(diag_service, data_id, did[data_id])
 
         return did_codec
 
@@ -301,9 +301,10 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
             logger.info(f"Reason: {e}")
 
 class PDXCodec(DidCodec):
-    def __init__(self, service, did):
+    def __init__(self, service, did, sub_service = None):
         self.service = service
         self.did = did
+        self.sub_service = sub_service
 
     def decode(self, string_bin: bytes):
         parameters = self.service.positive_responses[0].parameters
@@ -363,6 +364,8 @@ class PDXCodec(DidCodec):
         bit_length = self.service.positive_responses[0].get_static_bit_length()
         if bit_length:
             return (bit_length >> 3) - 3
+        elif bit_length is None and self.sub_service is not None:
+            return self.service.positive_responses[0].parameters[2].table.table_rows[self.sub_service].structure.get_static_bit_length()
         else:
             raise DidCodec.ReadAllRemainingData
 
