@@ -1419,7 +1419,13 @@ Sends a request for the RoutineControl service by routine name.
         control_type = diag_services[0].request.parameters[1].coded_value
         if control_type != 1 and control_type != 2:
             control_type = 3
-        routine_id = diag_services[0].request.parameters[2].coded_value
+
+        parameter_type = diag_services[0].request.parameters[2].parameter_type
+        if parameter_type == "TABLE-KEY":
+            if sub_service == None or len(sub_service) == 0:
+                raise Exception(f"Sub-service required for this {io_control_name} service")
+
+        routine_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service])
 
         if data is not None:
             # Encoded data to bytes
@@ -1481,13 +1487,13 @@ Get diagnostic service list by a list of service names.
                 else:
                     pass
         response = self.read_data_by_identifier(data_id_list, device_name, parameters)
-        return response
-        # return service name as key instead of did
-        # updated_response = {}
-        # for did, did_res in response.items():
-        #     updated_response[did_mapping[did]] = did_res
 
-        # return updated_response
+        # return service name as key instead of did
+        updated_response = {}
+        for did, did_res in response.items():
+            updated_response[did_mapping[did]] = did_res
+
+        return updated_response
 
     @keyword("Get Encoded Request Message")
     def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default"):
