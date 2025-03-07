@@ -295,8 +295,9 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
             logger.info(f"Reason: {e}")
 
 class PDXCodec(DidCodec):
-    def __init__(self, service):
+    def __init__(self, service, did):
         self.service = service
+        self.did = did
 
     def decode(self, string_bin: bytes):
         parameters = self.service.positive_responses[0].parameters
@@ -309,6 +310,8 @@ class PDXCodec(DidCodec):
         for par in parameters:
             if par.parameter_type == "CODED-CONST":
                 response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
+            elif par.parameter_type == "MATCHING-REQUEST-PARAM":
+                response_prefix_hex = response_prefix_hex + f"{self.did:02x}"
 
         string_hex = "".join([response_prefix_hex, string_bin.hex()])
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
