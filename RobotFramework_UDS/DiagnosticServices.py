@@ -262,13 +262,19 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
         """
         did_codec = {}
         diag_services = self.ecus.service_groups[service_id]
+        sub_service_list = None
         for diag_service in diag_services:
-            did = self.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_services)
+            if sub_services != None:
+                try:
+                    sub_service_list = sub_services[diag_service.short_name]
+                except:
+                    sub_service_list = None
+            did = self.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_service_list)
             if isinstance(did, int):
-                did_codec[did] = PDXCodec(diag_service)
+                did_codec[did] = PDXCodec(diag_service, did)
             elif isinstance(did, dict):
                 for data_id in list(did.keys()):
-                    did_codec[data_id] = PDXCodec(diag_service)
+                    did_codec[data_id] = PDXCodec(diag_service, data_id)
 
         return did_codec
 

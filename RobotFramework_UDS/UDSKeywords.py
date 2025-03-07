@@ -1484,8 +1484,7 @@ Get diagnostic service list by a list of service names.
                     key_ids = list(data_id.keys())
                     data_id_list = data_id_list + key_ids
                     did_mapping[diag_service.short_name] = data_id
-                else:
-                    pass
+
         response = self.read_data_by_identifier(data_id_list, device_name, parameters)
 
         # return service name as key instead of did
