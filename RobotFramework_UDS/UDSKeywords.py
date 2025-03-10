@@ -1589,7 +1589,9 @@ Requests to write a value associated with a name of service through the WriteDat
                 raise Exception(f"Sub-service required for this {service_name} service")
 
         data_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_service_list[0].request.parameters[1], [sub_service])
-        response = self.write_data_by_identifier(list(data_id.keys())[0], value, device_name)
+        if isinstance(data_id, dict):
+            data_id = list(data_id.keys())[0]
+        response = self.write_data_by_identifier(data_id, value, device_name)
         logger.info(f"Write {service_name} successful")
         return response
 
