@@ -16,6 +16,7 @@ class DiagnosticServices:
         self.ecus = self.odx_db.ecus[self.variant]
         self.diag_layers = self.odx_db.diag_layers[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
+
     @staticmethod
     def convert_sub_param(odx_param, req_sub_param):
         """
@@ -364,10 +365,12 @@ class PDXCodec(DidCodec):
         bit_length = self.service.positive_responses[0].get_static_bit_length()
         if bit_length:
             return (bit_length >> 3) - 3
-        elif bit_length is None and self.sub_service is not None:
-            return self.service.positive_responses[0].parameters[2].table.table_rows[self.sub_service].structure.get_static_bit_length()
-        else:
-            raise DidCodec.ReadAllRemainingData
+        elif self.sub_service is not None:
+            bit_length = self.service.positive_responses[0].parameters[2].table.table_rows[self.sub_service].structure.get_static_bit_length()
+            if bit_length:
+                return (bit_length >> 3) - 3
+
+        raise DidCodec.ReadAllRemainingData
 
 class ServiceID(Enum):
     DIAGNOSTIC_SESSION_CONTROL = 0x10
