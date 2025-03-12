@@ -310,7 +310,7 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
                 logger.info(f"Currently, this parameter type: {parameter_type} is not supported.")
                 return
         except Exception as e:
-            logger.info(f"Reason: {e}")
+            raise Exception(f"Reason: {e}")
 
 class PDXCodec(DidCodec):
     def __init__(self, service, did, sub_service = None):
