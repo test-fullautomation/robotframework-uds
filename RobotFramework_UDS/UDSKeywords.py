@@ -957,7 +957,7 @@ Informs the server that the client wants to initiate a download from the client 
         uds_device = self.__device_check(device_name)
         response = uds_device.client.request_download(memory_location, dfi)
         return response
-    
+
     @keyword("Request Transfer Exit")
     def request_transfer_exit(self, data: Optional[bytes] = None, device_name="default"):
         """
@@ -1145,7 +1145,7 @@ Transfers a block of data to/from the client to/from the server by sending a Tra
         uds_device = self.__device_check(device_name)
         response = uds_device.client.transfer_data(sequence_number, data)
         return response
-    
+
     @keyword("Write Data By Identifier")
     def write_data_by_identifier(self, did: int, value: Any, device_name="default"):
         """
@@ -1225,7 +1225,7 @@ Writes a block of memory in the server by sending a WriteMemoryByAddress service
         return response
 
     @keyword("Request File Transfer")
-    def request_file_transfer(self, 
+    def request_file_transfer(self,
                               moop: int,
                               path: str = '',
                               dfi: Optional[DataFormatIdentifier] = None,
@@ -1409,8 +1409,8 @@ Sends a request for the RoutineControl service by routine name.
 
 **Returns:**
 
-* ``response``  
-  / *Type*: Response /  
+* ``response``
+  / *Type*: Response /
   The server's response to the RoutineControl request.
         """
         response = None
@@ -1423,14 +1423,14 @@ Sends a request for the RoutineControl service by routine name.
         parameter_type = diag_services[0].request.parameters[2].parameter_type
         if parameter_type == "TABLE-KEY":
             if sub_service == None or len(sub_service) == 0:
-                raise Exception(f"Sub-service required for this {io_control_name} service")
+                raise Exception(f"Sub-service required for this {routine_name} service")
 
-        routine_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service])
+        routine_id = list(uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service]).keys())[0]
 
         if data is not None:
             # Encoded data to bytes
             if isinstance(data, dict):
-                original_encode_message = self.get_encoded_request_message(routine_name, data, device_name)
+                original_encode_message = self.get_encoded_request_message(routine_name, data, device_name, sub_service)
 
                 # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for the service id and control type.
                 data = original_encode_message[4:]
@@ -1458,8 +1458,8 @@ Get diagnostic service list by a list of service names.
 
 **Returns:**
 
-* ``response``  
-  / *Type*: Response /  
+* ``response``
+  / *Type*: Response /
   The server's response containing the diagnostic service list.
         """
         uds_device = self.__device_check(device_name)
@@ -1498,7 +1498,7 @@ Get diagnostic service list by a list of service names.
         return updated_response
 
     @keyword("Get Encoded Request Message")
-    def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default"):
+    def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default", sub_service=None):
         """
 Get diagnostic service encoded request (bytes value).
 
@@ -1512,12 +1512,12 @@ Get diagnostic service encoded request (bytes value).
 
 **Returns:**
 
-* ``encoded_message``  
-  / *Type*: bytes /  
+* ``encoded_message``
+  / *Type*: bytes /
   The encoded message in bytes value.
         """
         uds_device = self.__device_check(device_name)
-        encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict)
+        encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict, sub_service)
         return encoded_message
 
     @keyword("Get Decoded Response Message")
@@ -1605,16 +1605,16 @@ Sends a request for the IOControl service by name of input output control servic
 
 **Arguments:**
 
-* ``io_control_name`` 
+* ``io_control_name``
 
   / *Condition*: required / *Type*: str /
-  
+
   Name of the input output control service
 
 * ``value``
 
   / *Condition*: optional / *Type*: dict /
-  
+
   Optional additional data to give to the server
 
 * ``masks``
@@ -1640,7 +1640,7 @@ Sends a request for the IOControl service by name of input output control servic
         # Verify the device is available
         uds_device = self.__device_check(device_name)
 
-        # Verify the service is available then get did and control_param from it 
+        # Verify the service is available then get did and control_param from it
         io_control_service = uds_device.diag_service_db.get_diag_service_by_name([io_control_name])[0]
 
         parameter_type = io_control_service.request.parameters[1].parameter_type
@@ -1658,7 +1658,7 @@ Sends a request for the IOControl service by name of input output control servic
         else:
             uds_device.config['input_output'].update({data_id: did_codec})
 
-        # Process io control request and get response data 
+        # Process io control request and get response data
         response = self.io_control(data_id, control_param, value, mask, device_name)
         return response
 

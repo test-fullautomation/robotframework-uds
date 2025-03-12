@@ -57,7 +57,7 @@ Recursive convert sub parameters in given request to correct data type
                     org_val = bytes(match.group(1), "latin1").hex()
         except:
             raise Exception(f"required parameter {odx_param.short_name} is missing")
-        
+
         if odx_param.dop and hasattr(odx_param.dop, "parameters"):
             for sub_param in odx_param.dop.parameters:
                 print(f"{odx_param.short_name} - {sub_param.short_name}")
@@ -65,9 +65,9 @@ Recursive convert sub parameters in given request to correct data type
             return req_sub_param[odx_param.short_name]
         else:
             return odx_param.physical_type.base_data_type.from_string(org_val)
-    
+
     @staticmethod
-    def convert_request_data_type(service, parameter_dict):
+    def convert_request_data_type(request_parameters, parameter_dict):
         """
 Convert given request parameters (dictionary) to correct data type
 
@@ -93,7 +93,7 @@ Convert given request parameters (dictionary) to correct data type
 
   The dictionary of request parameters with the correct data types.
         """
-        request_parameters = service.request.parameters
+        # request_parameters = service.request.parameters
 
         # The parameters from the Robot test are strings, so they are converted to the right types.
         for param in request_parameters:
@@ -135,7 +135,7 @@ Retrieve the list of diagnostic services from a PDX file using a specified list 
 
         return diag_service_list
 
-    def get_encoded_request_message(self, service_name, parameter_dict):
+    def get_encoded_request_message(self, service_name, parameter_dict, sub_service_name=None):
         """
 Retrieve the encode request message from parameters dictionary.
 
@@ -169,13 +169,24 @@ Retrieve the encode request message from parameters dictionary.
                 encode_message = service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
-                parameter_dict = self.convert_request_data_type(service, parameter_dict)
-                encode_message = bytes(service.encode_request(**parameter_dict))
+                if (service.request.parameters[2].parameter_type == 'TABLE-KEY' and
+                    service.request.parameters[3].parameter_type == 'TABLE-STRUCT' and
+                    sub_service_name):
+
+                    service_params = service.request.parameters[3].table_key.table.table_rows[sub_service_name].structure.parameters
+                    request_parameters = self.convert_request_data_type(service_params, parameter_dict)
+                    request_parameters = {
+                        service.request.parameters[3].short_name: tuple([sub_service_name, request_parameters])
+                    }
+                else:
+                    request_parameters = self.convert_request_data_type(service.request.parameters, parameter_dict)
+
+                encode_message = bytes(service.encode_request(**request_parameters))
                 logger.info(f"Full encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {service.short_name} message.")
             raise Exception(f"Reason: {e}")
-            
+
         return encode_message
 
     def get_decode_response_message(self, service_name, raw_message: bytes):
@@ -314,7 +325,7 @@ class PDXCodec(DidCodec):
         # SID_PR
         # DataIdentifier
         # ControlParam (IC Control Service)
-        # ... 
+        # ...
         for par in parameters:
             if par.parameter_type == "CODED-CONST":
                 response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
@@ -339,9 +350,9 @@ class PDXCodec(DidCodec):
             else:
                 # Convert the parameter data type to the correct type
                 if parameter_dict:
-                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service.request.parameters, parameter_dict)
                 elif parameter_val and isinstance(parameter_val[0], dict):
-                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_val[0])
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service.request.parameters, parameter_val[0])
 
                 parameters = self.service.request.parameters
                 pos_param = 0
@@ -352,13 +363,13 @@ class PDXCodec(DidCodec):
                 # SID: 1 byte
                 # DataIdentifier: 2 bytes
                 # ControlParam (IC Control Service): 1 byte
-                # ... 
+                # ...
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[pos_param:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")
             raise Exception(f"Reason: {e}")
-            
+
         return encode_message
 
     def __len__(self) -> int:
