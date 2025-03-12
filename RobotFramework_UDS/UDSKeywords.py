@@ -1442,9 +1442,12 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
-        logger.info(f"Decode message: {decode_message}")
-        return decode_message
+        if response.positive == True and response.data is not None:
+            decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
+            logger.info(f"Decode message: {decode_message}")
+            return decode_message
+        else:
+            return response
 
     @keyword("Read Data By Name")
     def read_data_by_name(self, service_name_list = [], parameters = None, device_name="default"):
