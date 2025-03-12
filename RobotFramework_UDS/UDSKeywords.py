@@ -807,7 +807,7 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
-
+        responses = []
         # Read data by identifier without PDX file
         # User needs to update the configuration to properly decode the response
         # e.g. uds_device.config['data_identifiers'].update(did_codec)
@@ -821,10 +821,13 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ, sub_services)
         uds_device.config['data_identifiers'].update(did_codec)
 
-        response = uds_device.client.read_data_by_identifier(data_id_list)
+        for data_id in data_id_list:
+            response = uds_device.client.read_data_by_identifier(data_id)
+            responses.append(response)
+
         for i in range(0, len(data_id_list)):
-            logger.info(response.service_data.values[data_id_list[i]])
-        return response.service_data.values
+            logger.info(responses[i].service_data.values[data_id_list[i]])
+        return responses
 
     @keyword("Read DTC Information")
     def read_dtc_information(self,
@@ -1475,25 +1478,32 @@ Get diagnostic service list by a list of service names.
                     sub_services = parameters[diag_service.short_name]
             except KeyError:
                 sub_services = None
+            except TypeError:
+                logger.error(f"The optional paramenter: parameters should be the dictionary")
             finally:
                 data_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_services)
                 if isinstance(data_id, int):
                     data_id_list.append(data_id)
-                    did_mapping[data_id] = diag_service.short_name
+                    did_mapping[diag_service.short_name] = dict()
+                    did_mapping[diag_service.short_name][data_id] = diag_service.short_name
+                    # did_mapping[diag_service.short_name] = { data_id: diag_service.short_name }
                 elif isinstance(data_id, dict):
                     key_ids = list(data_id.keys())
                     data_id_list = data_id_list + key_ids
                     did_mapping[diag_service.short_name] = data_id
 
-        response = self.read_data_by_identifier(data_id_list, device_name, parameters)
+        responses = self.read_data_by_identifier(data_id_list, device_name, parameters)
 
         # return service name as key instead of did
         updated_response = {}
-        for service_name in service_name_list:
+
+        for i in range(0, len(responses)):
+            service_data = responses[i].service_data.values
+            service_name = service_name_list[i]
             updated_response[service_name] = dict()
-            for did, did_res in response.items():
-                sub_service_name = did_mapping[service_name][did]
-                updated_response[service_name][sub_service_name] = did_res
+            for did, did_res in service_data.items():
+              sub_service_name = did_mapping[service_name][did]
+              updated_response[service_name][sub_service_name] = did_res
 
         return updated_response
 
