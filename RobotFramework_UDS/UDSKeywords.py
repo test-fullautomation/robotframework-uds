@@ -1489,7 +1489,6 @@ Get diagnostic service list by a list of service names.
                     data_id_list.append(data_id)
                     did_mapping[diag_service.short_name] = dict()
                     did_mapping[diag_service.short_name][data_id] = diag_service.short_name
-                    # did_mapping[diag_service.short_name] = { data_id: diag_service.short_name }
                 elif isinstance(data_id, dict):
                     key_ids = list(data_id.keys())
                     data_id_list = data_id_list + key_ids
