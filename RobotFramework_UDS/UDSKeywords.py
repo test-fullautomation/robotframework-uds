@@ -1488,7 +1488,7 @@ Get diagnostic service list by a list of service names.
                 if isinstance(data_id, int):
                     data_id_list.append(data_id)
                     did_mapping[diag_service.short_name] = dict()
-                    did_mapping[diag_service.short_name][data_id] = diag_service.short_name
+                    did_mapping[diag_service.short_name][data_id] = diag_service.long_name.split()[0]
                 elif isinstance(data_id, dict):
                     key_ids = list(data_id.keys())
                     data_id_list = data_id_list + key_ids
@@ -1505,7 +1505,11 @@ Get diagnostic service list by a list of service names.
             updated_response[service_name] = dict()
             for did, did_res in service_data.items():
                 sub_service_name = did_mapping[service_name][did]
-                updated_response[service_name] = did_res["DataRecord"][1]
+                try:
+                    data = did_res["DataRecord"]
+                    updated_response[service_name] = data[1]
+                except KeyError:
+                    updated_response[service_name] = did_res[sub_service_name]
 
         return updated_response
 
