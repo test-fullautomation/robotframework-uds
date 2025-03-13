@@ -1506,8 +1506,9 @@ Get diagnostic service list by a list of service names.
             for did, did_res in service_data.items():
                 sub_service_name = did_mapping[service_name][did]
                 try:
-                    data = did_res["DataRecord"]
-                    updated_response[service_name] = data[1]
+                    for item in list(did_res.values()):
+                        if isinstance(item, tuple):
+                            updated_response[service_name] = item[1]
                 except KeyError:
                     updated_response[service_name] = did_res[sub_service_name]
 
@@ -1652,6 +1653,7 @@ Sends a request for the IOControl service by name of input output control servic
 
   The decoded response data.
         """
+        response = None
         dict_codec = {}
         # Verify the device is available
         uds_device = self.__device_check(device_name)
@@ -1667,15 +1669,16 @@ Sends a request for the IOControl service by name of input output control servic
         control_param = io_control_service.request.parameters[2].coded_value
 
         # Update uds config of 'input_output' with did codec
-        did_codec = PDXCodec(io_control_service)
         if isinstance(data_id, dict):
-            for key in list(data_id.keys()):
-                dict_codec[key] = io_control_service
+            did_codec = PDXCodec(io_control_service, list(data_id.keys())[0], sub_service)
+            uds_device.config['input_output'].update({did_codec.did: did_codec})
+            response = self.io_control(list(data_id.keys())[0], control_param, value, mask, device_name)
         else:
+            did_codec = PDXCodec(io_control_service, data_id)
             uds_device.config['input_output'].update({data_id: did_codec})
+            # Process io control request and get response data
+            response = self.io_control(data_id, control_param, value, mask, device_name)
 
-        # Process io control request and get response data
-        response = self.io_control(data_id, control_param, value, mask, device_name)
         return response
 
     @keyword("Send UDS Request By Name")
