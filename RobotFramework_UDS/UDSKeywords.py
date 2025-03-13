@@ -1442,7 +1442,7 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        if response.positive == True and response.data is not None:
+        if response != None and response.data is not None:
             decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
             logger.info(f"Decode message: {decode_message}")
             return decode_message
@@ -1503,9 +1503,9 @@ Get diagnostic service list by a list of service names.
             service_data = responses[i].service_data.values
             service_name = service_name_list[i]
             updated_response[service_name] = dict()
-            for did, did_res in service_data.items():
-              sub_service_name = did_mapping[service_name][did]
-              updated_response[service_name][sub_service_name] = did_res
+            for did, did_res in response.items():
+                sub_service_name = did_mapping[service_name][did]
+                updated_response[service_name] = did_res["DataRecord"][1]
 
         return updated_response
 
