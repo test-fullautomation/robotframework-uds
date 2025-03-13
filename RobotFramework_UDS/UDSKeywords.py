@@ -1503,7 +1503,7 @@ Get diagnostic service list by a list of service names.
             service_data = responses[i].service_data.values
             service_name = service_name_list[i]
             updated_response[service_name] = dict()
-            for did, did_res in response.items():
+            for did, did_res in service_data.items():
                 sub_service_name = did_mapping[service_name][did]
                 updated_response[service_name] = did_res["DataRecord"][1]
 
