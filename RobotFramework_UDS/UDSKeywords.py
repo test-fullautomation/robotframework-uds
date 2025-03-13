@@ -1503,14 +1503,11 @@ Get diagnostic service list by a list of service names.
             service_data = responses[i].service_data.values
             service_name = service_name_list[i]
             updated_response[service_name] = dict()
-            for did, did_res in service_data.items():
-                sub_service_name = did_mapping[service_name][did]
-                try:
-                    for item in list(did_res.values()):
-                        if isinstance(item, tuple):
-                            updated_response[service_name] = item[1]
-                except KeyError:
-                    updated_response[service_name] = did_res[sub_service_name]
+            for did_res in service_data.values():
+                if 'DataRecord' in did_res:
+                    updated_response[service_name] = did_res['DataRecord'][1]
+                else:
+                    updated_response[service_name] = did_res
 
         return updated_response
 
