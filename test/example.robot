@@ -90,9 +90,9 @@ Test user can use Read Data By Name service on ECU
         END
     END
 
-Test user can use Read Data By Name service if the service have sub-service on ECU
+Test user can use Read Data By Name service if the services have sub-service on ECU
     ${list_read}=    Create List    Identification_Read
-    ${sub_service}=    Create List    CTSSWVersion    ECUSWBuildVersionLabel
+    ${sub_service}=    Create List    CTSSWVersion    CTSSWVersion
     ${dict_sub_service}=    Create Dictionary    Identification_Read=${sub_service}
 
     ${responses}=    Read Data By Name    ${list_read}    parameters=${dict_sub_service}
@@ -107,7 +107,7 @@ Test user can use Read Data By Name service if the service have sub-service on E
         END
     END
 
-    Append To List    ${list_read}    readCPUClockFrequency_Read
+    Append To List    ${list_read}    readCPUClockFrequency_Read    Temperature_Sensor_17_Read
 
     ${responses}=    Read Data By Name    ${list_read}    parameters=${dict_sub_service}
 
@@ -122,7 +122,7 @@ Test user can use Read Data By Name service if the service have sub-service on E
     END
 
     ${read}=    Create List    readCPUClockFrequency_Read    Identification_Read
-    ${s_service}=    Create List    CTSSWVersion    ECUSWBuildVersionLabel
+    ${s_service}=    Create List    CTSSWVersion    CTSSWVersion
     ${dict_sub_service}=    Create Dictionary    Identification_Read=${s_service}
     ${responses}=    Read Data By Name    ${read}    parameters=${dict_sub_service}
 
@@ -146,7 +146,18 @@ Test user can use Input Output Control By Name service on ECU
     FOR    ${item}    IN    @{response.keys()}
         Log    ${item} : ${response["${item}"]}    console=True
     END
-    
+
+Test user can use Input Output Control By Name service if the service has sub-service on ECU
+    Log    Input Output Control By Name service: CAM1PowerSupply_Set
+
+    ${param_dict}=    Create Dictionary    ControlOptionRecord=1
+    ${response}=    Input Output Control By Name    IOControl_Control    ${param_dict}    sub_service=externalFan_PowerSupply
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 
@@ -162,7 +173,7 @@ Test user can use Routine Control By Name service if service have sub-service on
     Log    Routine Control By Name service: Routine_Control_Start, sub-service: StartIperfServer_Start
 
     ${param_dict}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
-    ${response}=    Routine Control By Name    Routine_Control_Start    ${param_dict}    sub_service=StartIperfServer_Start
+    ${response}=    Routine Control By Name    Routine_Control_Start    ${param_dict}    sub_service=StartIperfServer
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}
