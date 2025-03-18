@@ -345,6 +345,17 @@ class PDXCodec(DidCodec):
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
         try:
+            for param in self.service.request.parameters:
+                if param.parameter_type == 'TABLE-STRUCT':
+                    service_params = param.table_key.table.table_rows[self.sub_service].structure.parameters
+                    request_parameters = DiagnosticServices.convert_request_data_type(service_params, parameter_dict)
+                    request_parameters = {
+                        param.short_name: tuple([self.sub_service, request_parameters])
+                    }
+                    encode_message = bytes(self.service.encode_request(**request_parameters))
+                    logger.info(f"Full encode message: {encode_message}")
+                    return encode_message
+
             if (not parameter_val) and (not parameter_dict):
                 encode_message = self.service.encode_request()
             else:
