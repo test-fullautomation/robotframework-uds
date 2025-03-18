@@ -344,6 +344,7 @@ class PDXCodec(DidCodec):
         # request parameter dictionary is passed as keyword arguments **parameter_dict
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
+        request_parameters = {}
         try:
             for param in self.service.request.parameters:
                 if param.parameter_type == 'TABLE-STRUCT':
