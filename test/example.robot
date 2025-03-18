@@ -149,9 +149,8 @@ Test user can use Input Output Control By Name service on ECU
 
 Test user can use Input Output Control By Name service if the service has sub-service on ECU
     Log    Input Output Control By Name service: CAM1PowerSupply_Set
-
-    ${param_dict}=    Create Dictionary    ControlOptionRecord=1
-    ${response}=    Input Output Control By Name    IOControl_Control    ${param_dict}    sub_service=externalFan_PowerSupply
+    ${param_dict}=    Create Dictionary    pwm=10
+    ${response}=    Input Output Control By Name    IOControl_Control    ${param_dict}    sub_service=internalFan_PWM
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}
