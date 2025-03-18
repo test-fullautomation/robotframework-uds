@@ -92,7 +92,7 @@ Test user can use Read Data By Name service on ECU
 
 Test user can use Read Data By Name service if the services have sub-service on ECU
     ${list_read}=    Create List    Identification_Read
-    ${sub_service}=    Create List    CTSSWVersion    CTSSWVersion
+    ${sub_service}=    Create List    CTSSWVersion
     ${dict_sub_service}=    Create Dictionary    Identification_Read=${sub_service}
 
     ${responses}=    Read Data By Name    ${list_read}    parameters=${dict_sub_service}
@@ -122,7 +122,7 @@ Test user can use Read Data By Name service if the services have sub-service on 
     END
 
     ${read}=    Create List    readCPUClockFrequency_Read    Identification_Read
-    ${s_service}=    Create List    CTSSWVersion    CTSSWVersion
+    ${s_service}=    Create List    CTSSWVersion
     ${dict_sub_service}=    Create Dictionary    Identification_Read=${s_service}
     ${responses}=    Read Data By Name    ${read}    parameters=${dict_sub_service}
 
