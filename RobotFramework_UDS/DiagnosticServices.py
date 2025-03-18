@@ -348,7 +348,9 @@ class PDXCodec(DidCodec):
             for param in self.service.request.parameters:
                 if param.parameter_type == 'TABLE-STRUCT':
                     service_params = param.table_key.table.table_rows[self.sub_service].structure.parameters
-                    request_parameters = DiagnosticServices.convert_request_data_type(service_params, parameter_dict)
+                    request_parameters[param.short_name] = dict()
+                    request_parameters[param.short_name][self.sub_service] = parameter_dict
+                    request_parameters = DiagnosticServices.convert_request_data_type(service_params, request_parameters)
                     request_parameters = {
                         param.short_name: tuple([self.sub_service, request_parameters])
                     }
