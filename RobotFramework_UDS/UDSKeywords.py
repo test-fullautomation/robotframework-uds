@@ -1768,11 +1768,11 @@ Sends a UDS request by the name of the specified diagnostic service.
       elif service_id == ServiceID.INPUT_OUTPUT_CONTROL_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to io control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}. Mask: {kwargs.get('mask', None)}")
-          response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name)
+          response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name, kwargs.get("sub_service", None))
       elif service_id == ServiceID.ROUTINE_CONTROL.value:
           logger.info(f"Sending {service_name} to routine control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}")
-          response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name)
+          response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name, kwargs.get("sub_service", None))
 
       # Full support not yet available.
       elif service_id == ServiceID.CLEAR_DIAGNOSTIC_INFORMATION.value:
