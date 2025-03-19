@@ -1428,7 +1428,9 @@ Sends a request for the RoutineControl service by routine name.
             if sub_service == None or len(sub_service) == 0:
                 raise Exception(f"Sub-service required for this {routine_name} service")
 
-        routine_id = list(uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service]).keys())[0]
+        routine_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service])
+        if isinstance(routine_id, dict):
+            routine_id = list(uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service]).keys())[0]
 
         if data is not None:
             # Encoded data to bytes
