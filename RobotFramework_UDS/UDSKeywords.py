@@ -786,7 +786,7 @@ Controls the communication baudrate by sending a LinkControl service request.
         return response
 
     @keyword("Read Data By Identifier")
-    def read_data_by_identifier(self, data_id_list: Union[int, List[int]], device_name="default"):
+    def read_data_by_identifier(self, data_id_list: Union[int, List[int]], device_name="default", sub_services = None):
         """
 Requests a value associated with a data identifier (DID) through the ReadDataByIdentifier service.
 
@@ -807,7 +807,7 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
   The response from the ReadDataByIdentifier service request.
         """
         uds_device = self.__device_check(device_name)
-
+        responses = []
         # Read data by identifier without PDX file
         # User needs to update the configuration to properly decode the response
         # e.g. uds_device.config['data_identifiers'].update(did_codec)
@@ -818,13 +818,16 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         SID_RQ = 34 # The request id of read data by identifier
 
         # Get the did_codec from pdx file and set it to uds config
-        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
+        did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ, sub_services)
         uds_device.config['data_identifiers'].update(did_codec)
 
-        response = uds_device.client.read_data_by_identifier(data_id_list)
+        for data_id in data_id_list:
+            response = uds_device.client.read_data_by_identifier(data_id)
+            responses.append(response)
+
         for i in range(0, len(data_id_list)):
-            logger.info(response.service_data.values[data_id_list[i]])
-        return response.service_data.values
+            logger.info(responses[i].service_data.values[data_id_list[i]])
+        return responses
 
     @keyword("Read DTC Information")
     def read_dtc_information(self,
@@ -957,7 +960,7 @@ Informs the server that the client wants to initiate a download from the client 
         uds_device = self.__device_check(device_name)
         response = uds_device.client.request_download(memory_location, dfi)
         return response
-    
+
     @keyword("Request Transfer Exit")
     def request_transfer_exit(self, data: Optional[bytes] = None, device_name="default"):
         """
@@ -1145,7 +1148,7 @@ Transfers a block of data to/from the client to/from the server by sending a Tra
         uds_device = self.__device_check(device_name)
         response = uds_device.client.transfer_data(sequence_number, data)
         return response
-    
+
     @keyword("Write Data By Identifier")
     def write_data_by_identifier(self, did: int, value: Any, device_name="default"):
         """
@@ -1225,7 +1228,7 @@ Writes a block of memory in the server by sending a WriteMemoryByAddress service
         return response
 
     @keyword("Request File Transfer")
-    def request_file_transfer(self, 
+    def request_file_transfer(self,
                               moop: int,
                               path: str = '',
                               dfi: Optional[DataFormatIdentifier] = None,
@@ -1395,7 +1398,7 @@ Sends an Authentication request introduced in 2020 version of ISO-14229-1.
         return response
 
     @keyword("Routine Control By Name")
-    def routine_control_by_name(self, routine_name, data = None, device_name="default"):
+    def routine_control_by_name(self, routine_name, data = None, device_name="default", sub_service=None):
         """
 Sends a request for the RoutineControl service by routine name.
 
@@ -1409,8 +1412,8 @@ Sends a request for the RoutineControl service by routine name.
 
 **Returns:**
 
-* ``response``  
-  / *Type*: Response /  
+* ``response``
+  / *Type*: Response /
   The server's response to the RoutineControl request.
         """
         response = None
@@ -1419,12 +1422,20 @@ Sends a request for the RoutineControl service by routine name.
         control_type = diag_services[0].request.parameters[1].coded_value
         if control_type != 1 and control_type != 2:
             control_type = 3
-        routine_id = diag_services[0].request.parameters[2].coded_value
+
+        parameter_type = diag_services[0].request.parameters[2].parameter_type
+        if parameter_type == "TABLE-KEY":
+            if sub_service == None or len(sub_service) == 0:
+                raise Exception(f"Sub-service required for this {routine_name} service")
+
+        routine_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service])
+        if isinstance(routine_id, dict):
+            routine_id = list(uds_device.diag_service_db.get_param_value_base_on_param_type(diag_services[0].request.parameters[2], [sub_service]).keys())[0]
 
         if data is not None:
             # Encoded data to bytes
             if isinstance(data, dict):
-                original_encode_message = self.get_encoded_request_message(routine_name, data, device_name)
+                original_encode_message = self.get_encoded_request_message(routine_name, data, device_name, sub_service)
 
                 # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for the service id and control type.
                 data = original_encode_message[4:]
@@ -1433,9 +1444,12 @@ Sends a request for the RoutineControl service by routine name.
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
-        decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
-        logger.info(f"Decode message: {decode_message}")
-        return decode_message
+        if response != None and response.data is not None:
+            decode_message = self.get_decoded_positive_response_message(routine_name, response.data, device_name)
+            logger.info(f"Decode message: {decode_message}")
+            return decode_message
+        else:
+            return response
 
     @keyword("Read Data By Name")
     def read_data_by_name(self, service_name_list = [], parameters = None, device_name="default"):
@@ -1452,31 +1466,60 @@ Get diagnostic service list by a list of service names.
 
 **Returns:**
 
-* ``response``  
-  / *Type*: Response /  
+* ``response``
+  / *Type*: Response /
   The server's response containing the diagnostic service list.
         """
         uds_device = self.__device_check(device_name)
         diag_service_list = []
         data_id_list = []
-
-        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name(service_name_list)
         did_mapping = {}
+        sub_services = None
+        diag_service_list = uds_device.diag_service_db.get_diag_service_by_name(service_name_list)
+
         for diag_service in diag_service_list:
-            data_id = diag_service.request.parameters[1].coded_value
-            data_id_list.append(data_id)
-            did_mapping[data_id] = diag_service.short_name
-        response = self.read_data_by_identifier(data_id_list, device_name)
+            try:
+                if parameters != None:
+                    sub_services = parameters[diag_service.short_name]
+            except KeyError:
+                sub_services = None
+            except TypeError:
+                logger.error(f"The optional paramenter: parameters should be the dictionary")
+            finally:
+                data_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_services)
+                if isinstance(data_id, int):
+                    data_id_list.append(data_id)
+                    did_mapping[diag_service.short_name] = dict()
+                    did_mapping[diag_service.short_name][data_id] = diag_service.long_name.split()[0]
+                elif isinstance(data_id, dict):
+                    key_ids = list(data_id.keys())
+                    data_id_list = data_id_list + key_ids
+                    did_mapping[diag_service.short_name] = data_id
+
+        responses = self.read_data_by_identifier(data_id_list, device_name, parameters)
 
         # return service name as key instead of did
         updated_response = {}
-        for did, did_res in response.items():
-            updated_response[did_mapping[did]] = did_res
+
+        for i in range(0, len(responses)):
+            service_data = responses[i].service_data.values
+            service_name = service_name_list[i]
+            updated_response[service_name] = dict()
+            for did, did_res in service_data.items():
+                sub_service_name = did_mapping[service_name][did]
+                for item in list(did_res.values()):
+                    if isinstance(item, tuple):
+                        updated_response[service_name] = item[1]
+                    elif isinstance(item, dict):
+                        updated_response[service_name] = did_res[sub_service_name]
+
+                if len(updated_response[service_name]) == 0:
+                    updated_response[service_name] = did_res
 
         return updated_response
 
     @keyword("Get Encoded Request Message")
-    def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default"):
+    def get_encoded_request_message(self, service_name, parameters_dict=None, device_name="default", sub_service=None):
         """
 Get diagnostic service encoded request (bytes value).
 
@@ -1490,12 +1533,12 @@ Get diagnostic service encoded request (bytes value).
 
 **Returns:**
 
-* ``encoded_message``  
-  / *Type*: bytes /  
+* ``encoded_message``
+  / *Type*: bytes /
   The encoded message in bytes value.
         """
         uds_device = self.__device_check(device_name)
-        encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict)
+        encoded_message = uds_device.diag_service_db.get_encoded_request_message(service_name, parameters_dict, sub_service)
         return encoded_message
 
     @keyword("Get Decoded Response Message")
@@ -1527,23 +1570,28 @@ Get diagnostic service decoded positive response message.
         return decode_message
 
     @keyword("Write Data By Name")
-    def write_data_by_name(self, service_name = None, value = None, device_name = "default"):
+    def write_data_by_name(self, service_name = None, value = None, device_name = "default", sub_service = None):
         """
 Requests to write a value associated with a name of service through the WriteDataByName service.
 
 **Arguments:**
 
-* ``did``
+* ``service_name``
 
-  / *Condition*: required / *Type*: int /
+  / *Condition*: required / *Type*: str /
 
-  The DID to write its value.
+  The name to write its value.
 
 * ``value``
 
   / *Condition*: required / *Type*: dict /
 
   Value given to the DidCodec.encode method. The payload returned by the codec will be sent to the server.
+
+* ``sub_services``
+  / *Condition*: optional / *Type*: str /
+
+  A dictionary representing the sub-services of the main service, formatted as: { 'Name of main service': ['Name of sub-service'] }
 
 **Returns:**
 
@@ -1558,29 +1606,36 @@ Requests to write a value associated with a name of service through the WriteDat
 
         # Get service from name and verify the service is available
         diag_service_list = uds_device.diag_service_db.get_diag_service_by_name([service_name])
-        data_id = diag_service_list[0].request.parameters[1].coded_value
 
+        parameter_type = diag_service_list[0].request.parameters[1].parameter_type
+        if parameter_type == "TABLE-KEY":
+            if sub_service == None or len(sub_service) == 0:
+                raise Exception(f"Sub-service required for this {service_name} service")
+
+        data_id = uds_device.diag_service_db.get_param_value_base_on_param_type(diag_service_list[0].request.parameters[1], [sub_service])
+        if isinstance(data_id, dict):
+            data_id = list(data_id.keys())[0]
         response = self.write_data_by_identifier(data_id, value, device_name)
         logger.info(f"Write {service_name} successful")
         return response
 
     @keyword("Input Output Control By Name")
-    def io_control_by_name(self, io_control_name = None, value = None, mask = None, device_name = "default"):
+    def io_control_by_name(self, io_control_name = None, value = None, mask = None, device_name = "default", sub_service = None):
         """
 Sends a request for the IOControl service by name of input output control service.
 
 **Arguments:**
 
-* ``io_control_name`` 
+* ``io_control_name``
 
   / *Condition*: required / *Type*: str /
-  
+
   Name of the input output control service
 
 * ``value``
 
   / *Condition*: optional / *Type*: dict /
-  
+
   Optional additional data to give to the server
 
 * ``masks``
@@ -1602,20 +1657,32 @@ Sends a request for the IOControl service by name of input output control servic
 
   The decoded response data.
         """
+        response = None
+        dict_codec = {}
         # Verify the device is available
         uds_device = self.__device_check(device_name)
 
-        # Verify the service is available then get did and control_param from it 
+        # Verify the service is available then get did and control_param from it
         io_control_service = uds_device.diag_service_db.get_diag_service_by_name([io_control_name])[0]
-        data_id = io_control_service.request.parameters[1].coded_value
+
+        parameter_type = io_control_service.request.parameters[1].parameter_type
+        if parameter_type == "TABLE-KEY":
+            if sub_service == None or len(sub_service) == 0:
+                raise Exception(f"Sub-service required for this {io_control_name} service")
+        data_id = uds_device.diag_service_db.get_param_value_base_on_param_type(io_control_service.request.parameters[1], [sub_service])
         control_param = io_control_service.request.parameters[2].coded_value
 
         # Update uds config of 'input_output' with did codec
-        did_codec = PDXCodec(io_control_service)
-        uds_device.config['input_output'].update({data_id: did_codec})
+        if isinstance(data_id, dict):
+            did_codec = PDXCodec(io_control_service, list(data_id.keys())[0], sub_service)
+            uds_device.config['input_output'].update({did_codec.did: did_codec})
+            response = self.io_control(list(data_id.keys())[0], control_param, value, mask, device_name)
+        else:
+            did_codec = PDXCodec(io_control_service, data_id)
+            uds_device.config['input_output'].update({data_id: did_codec})
+            # Process io control request and get response data
+            response = self.io_control(data_id, control_param, value, mask, device_name)
 
-        # Process io control request and get response data 
-        response = self.io_control(data_id, control_param, value, mask, device_name)
         return response
 
     @keyword("Send UDS Request By Name")
@@ -1695,7 +1762,7 @@ Sends a UDS request by the name of the specified diagnostic service.
           response = self.ecu_reset(kwargs.get("reset_type", 1), device_name)
       elif service_id == ServiceID.READ_DATA_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to read data by name service")
-          response = self.read_data_by_name([service_name], device_name)
+          response = self.read_data_by_name([service_name], kwargs.get('parameters', None), device_name)
       elif service_id == ServiceID.WRITE_DATA_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to write data by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}")
@@ -1703,11 +1770,11 @@ Sends a UDS request by the name of the specified diagnostic service.
       elif service_id == ServiceID.INPUT_OUTPUT_CONTROL_BY_IDENTIFIER.value:
           logger.info(f"Sending {service_name} to io control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}. Mask: {kwargs.get('mask', None)}")
-          response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name)
+          response = self.io_control_by_name(service_name, kwargs.get("parameters", None), kwargs.get("mask", None), device_name, kwargs.get("sub_service", None))
       elif service_id == ServiceID.ROUTINE_CONTROL.value:
           logger.info(f"Sending {service_name} to routine control by name service")
           logger.info(f"Parameter: {kwargs.get('parameters', None)}")
-          response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name)
+          response = self.routine_control_by_name(service_name, kwargs.get("parameters", None), device_name, kwargs.get("sub_service", None))
 
       # Full support not yet available.
       elif service_id == ServiceID.CLEAR_DIAGNOSTIC_INFORMATION.value:

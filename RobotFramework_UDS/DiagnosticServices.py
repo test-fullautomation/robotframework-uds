@@ -13,7 +13,8 @@ class DiagnosticServices:
         odxtools.exceptions.strict_mode = False
         self.odx_db = odxtools.load_pdx_file(self.pdx_file)
         odxtools.exceptions.strict_mode = True
-        self.diag_layer = self.odx_db.ecus[self.variant]
+        self.ecus = self.odx_db.ecus[self.variant]
+        self.diag_layers = self.odx_db.diag_layers[self.variant]
         self.diag_services = self.odx_db.ecus[self.variant].services
 
     @staticmethod
@@ -56,7 +57,7 @@ Recursive convert sub parameters in given request to correct data type
                     org_val = bytes(match.group(1), "latin1").hex()
         except:
             raise Exception(f"required parameter {odx_param.short_name} is missing")
-        
+
         if odx_param.dop and hasattr(odx_param.dop, "parameters"):
             for sub_param in odx_param.dop.parameters:
                 print(f"{odx_param.short_name} - {sub_param.short_name}")
@@ -64,9 +65,9 @@ Recursive convert sub parameters in given request to correct data type
             return req_sub_param[odx_param.short_name]
         else:
             return odx_param.physical_type.base_data_type.from_string(org_val)
-    
+
     @staticmethod
-    def convert_request_data_type(service, parameter_dict):
+    def convert_request_data_type(request_parameters, parameter_dict):
         """
 Convert given request parameters (dictionary) to correct data type
 
@@ -92,7 +93,7 @@ Convert given request parameters (dictionary) to correct data type
 
   The dictionary of request parameters with the correct data types.
         """
-        request_parameters = service.request.parameters
+        # request_parameters = service.request.parameters
 
         # The parameters from the Robot test are strings, so they are converted to the right types.
         for param in request_parameters:
@@ -134,7 +135,7 @@ Retrieve the list of diagnostic services from a PDX file using a specified list 
 
         return diag_service_list
 
-    def get_encoded_request_message(self, service_name, parameter_dict):
+    def get_encoded_request_message(self, service_name, parameter_dict, sub_service_name=None):
         """
 Retrieve the encode request message from parameters dictionary.
 
@@ -168,13 +169,24 @@ Retrieve the encode request message from parameters dictionary.
                 encode_message = service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
-                parameter_dict = self.convert_request_data_type(service, parameter_dict)
-                encode_message = bytes(service.encode_request(**parameter_dict))
+                if (service.request.parameters[2].parameter_type == 'TABLE-KEY' and
+                    service.request.parameters[3].parameter_type == 'TABLE-STRUCT' and
+                    sub_service_name):
+
+                    service_params = service.request.parameters[3].table_key.table.table_rows[sub_service_name].structure.parameters
+                    request_parameters = self.convert_request_data_type(service_params, parameter_dict)
+                    request_parameters = {
+                        service.request.parameters[3].short_name: tuple([sub_service_name, request_parameters])
+                    }
+                else:
+                    request_parameters = self.convert_request_data_type(service.request.parameters, parameter_dict)
+
+                encode_message = bytes(service.encode_request(**request_parameters))
                 logger.info(f"Full encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {service.short_name} message.")
             raise Exception(f"Reason: {e}")
-            
+
         return encode_message
 
     def get_decode_response_message(self, service_name, raw_message: bytes):
@@ -240,7 +252,7 @@ Retrieve the complete byte data from the response, as the UDS removes the servic
         positive_response_data = bytes.fromhex(hex(diag_service.positive_responses[0].parameters.SID_PR.coded_value).replace('0x','') + data.hex())
         return positive_response_data
 
-    def get_did_codec(self, service_id):
+    def get_did_codec(self, service_id, sub_services = None):
         """
 Retrieves a dictionary of DID codecs for a given diagnostic service ID.
 
@@ -261,17 +273,50 @@ Retrieves a dictionary of DID codecs for a given diagnostic service ID.
   A dictionary where the keys are DIDs
         """
         did_codec = {}
-
-        diag_services = self.diag_layer.service_groups[service_id]
+        diag_services = self.ecus.service_groups[service_id]
+        sub_service_list = None
         for diag_service in diag_services:
-            did = diag_service.request.parameters[1].coded_value
-            did_codec[did] = PDXCodec(diag_service)
+            if sub_services != None:
+                try:
+                    sub_service_list = sub_services[diag_service.short_name]
+                except:
+                    sub_service_list = None
+            did = self.get_param_value_base_on_param_type(diag_service.request.parameters[1], sub_service_list)
+            if isinstance(did, int):
+                did_codec[did] = PDXCodec(diag_service, did)
+            elif isinstance(did, dict):
+                for data_id in list(did.keys()):
+                    did_codec[data_id] = PDXCodec(diag_service, data_id, did[data_id])
 
         return did_codec
 
+    @staticmethod
+    def get_param_value_base_on_param_type(param, key_list = None):
+        dict_value = {}
+        try:
+            parameter_type = param.parameter_type
+            if parameter_type == "TABLE-KEY":
+                if key_list == None:
+                    for row in param.table.table_rows:
+                        dict_value[row.key] = row.short_name
+                else:
+                    for key in key_list:
+                        dict_value[param.table.table_rows[key].key] = key
+                return dict_value
+            elif parameter_type == "CODED-CONST":
+                value = param.coded_value
+                return value
+            else:
+                logger.info(f"Currently, this parameter type: {parameter_type} is not supported.")
+                return
+        except Exception as e:
+            raise Exception(f"Reason: {e}")
+
 class PDXCodec(DidCodec):
-    def __init__(self, service):
+    def __init__(self, service, did, sub_service = None):
         self.service = service
+        self.did = did
+        self.sub_service = sub_service
 
     def decode(self, string_bin: bytes):
         parameters = self.service.positive_responses[0].parameters
@@ -280,10 +325,12 @@ class PDXCodec(DidCodec):
         # SID_PR
         # DataIdentifier
         # ControlParam (IC Control Service)
-        # ... 
+        # ...
         for par in parameters:
             if par.parameter_type == "CODED-CONST":
                 response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
+            elif par.parameter_type == "MATCHING-REQUEST-PARAM":
+                response_prefix_hex = response_prefix_hex + f"{self.did:02x}"
 
         string_hex = "".join([response_prefix_hex, string_bin.hex()])
         response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
@@ -297,15 +344,29 @@ class PDXCodec(DidCodec):
         # request parameter dictionary is passed as keyword arguments **parameter_dict
         logger.info(f"Encode {self.service.short_name} message")
         encode_message = None
+        request_parameters = {}
         try:
+            for param in self.service.request.parameters:
+                if param.parameter_type == 'TABLE-STRUCT':
+                    service_params = param.table_key.table.table_rows[self.sub_service].structure.parameters
+                    request_parameters[param.short_name] = dict()
+                    request_parameters[param.short_name][self.sub_service] = parameter_dict
+                    request_parameters = DiagnosticServices.convert_request_data_type(service_params, request_parameters)
+                    request_parameters = {
+                        param.short_name: tuple([self.sub_service, request_parameters])
+                    }
+                    encode_message = bytes(self.service.encode_request(**request_parameters))
+                    logger.info(f"Full encode message: {encode_message}")
+                    return encode_message
+
             if (not parameter_val) and (not parameter_dict):
                 encode_message = self.service.encode_request()
             else:
                 # Convert the parameter data type to the correct type
                 if parameter_dict:
-                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_dict)
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service.request.parameters, parameter_dict)
                 elif parameter_val and isinstance(parameter_val[0], dict):
-                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service, parameter_val[0])
+                    parameter_dict = DiagnosticServices.convert_request_data_type(self.service.request.parameters, parameter_val[0])
 
                 parameters = self.service.request.parameters
                 pos_param = 0
@@ -316,21 +377,25 @@ class PDXCodec(DidCodec):
                 # SID: 1 byte
                 # DataIdentifier: 2 bytes
                 # ControlParam (IC Control Service): 1 byte
-                # ... 
+                # ...
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[pos_param:]
                 logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")
             raise Exception(f"Reason: {e}")
-            
+
         return encode_message
 
     def __len__(self) -> int:
         bit_length = self.service.positive_responses[0].get_static_bit_length()
         if bit_length:
             return (bit_length >> 3) - 3
-        else:
-            raise DidCodec.ReadAllRemainingData
+        elif self.sub_service is not None:
+            bit_length = self.service.positive_responses[0].parameters[2].table.table_rows[self.sub_service].structure.get_static_bit_length()
+            if bit_length:
+                return (bit_length >> 3) - 3
+
+        raise DidCodec.ReadAllRemainingData
 
 class ServiceID(Enum):
     DIAGNOSTIC_SESSION_CONTROL = 0x10

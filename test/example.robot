@@ -74,12 +74,58 @@ Test user can use Read Data By Name service on ECU
     ${list_identifers}=    Create List    0x6330
     ${res}=    Read Data By Identifier    ${list_identifers}
     Log    ${res}    console=True
-    Log    ${res[0x6330]}    console=True
+    Log    ${res}[0]    console=True
 
     Log    readCPUClockFrequencies_Read
 
     ${service_name_list}=    Create List    readCPUClockFrequencies_Read
     ${responses}=    Read Data By Name    ${service_name_list}
+    Log    ${responses}    console=True
+
+    FOR    ${request_did}    IN    @{responses.keys()}
+        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+        ${response}=    Set Variable    ${responses["${request_did}"]}
+        FOR    ${item}    IN    @{response.keys()}
+            Log    ${item} : ${response["${item}"]}    console=True
+        END
+    END
+
+Test user can use Read Data By Name service if the services have sub-service on ECU
+    ${list_read}=    Create List    Identification_Read
+    ${sub_service}=    Create List    CTSSWVersion
+    ${dict_sub_service}=    Create Dictionary    Identification_Read=${sub_service}
+
+    ${responses}=    Read Data By Name    ${list_read}    parameters=${dict_sub_service}
+
+    Log    ${responses}    console=True
+
+    FOR    ${request_did}    IN    @{responses.keys()}
+        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+        ${response}=    Set Variable    ${responses["${request_did}"]}
+        FOR    ${item}    IN    @{response.keys()}
+            Log    ${item} : ${response["${item}"]}    console=True
+        END
+    END
+
+    Append To List    ${list_read}    readCPUClockFrequency_Read    Temperature_Sensor_17_Read
+
+    ${responses}=    Read Data By Name    ${list_read}    parameters=${dict_sub_service}
+
+    Log    ${responses}    console=True
+
+    FOR    ${request_did}    IN    @{responses.keys()}
+        Log    Key: ${request_did}, Value: ${responses["${request_did}"]}    console=True
+        ${response}=    Set Variable    ${responses["${request_did}"]}
+        FOR    ${item}    IN    @{response.keys()}
+            Log    ${item} : ${response["${item}"]}    console=True
+        END
+    END
+
+    ${read}=    Create List    readCPUClockFrequency_Read    Identification_Read
+    ${s_service}=    Create List    CTSSWVersion
+    ${dict_sub_service}=    Create Dictionary    Identification_Read=${s_service}
+    ${responses}=    Read Data By Name    ${read}    parameters=${dict_sub_service}
+
     Log    ${responses}    console=True
 
     FOR    ${request_did}    IN    @{responses.keys()}
@@ -100,12 +146,33 @@ Test user can use Input Output Control By Name service on ECU
     FOR    ${item}    IN    @{response.keys()}
         Log    ${item} : ${response["${item}"]}    console=True
     END
-    
+
+Test user can use Input Output Control By Name service if the service has sub-service on ECU
+    Log    Input Output Control By Name service: IOControl_Control, sub_service: internalFan_PWM
+    ${param_dict}=    Create Dictionary    pwm=10
+    ${response}=    Input Output Control By Name    IOControl_Control    ${param_dict}    sub_service=internalFan_PWM
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+
 Test user can use Routine Control By Name service on ECU
     Log    Routine Control By Name service: StartIperfServer_Start
 
     ${param_dict}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
     ${response}=    Routine Control By Name    StartIperfServer_Start    ${param_dict}
+
+    Log    ${response}    console=True
+    FOR    ${item}    IN    @{response.keys()}
+        Log    ${item} : ${response["${item}"]}    console=True
+    END
+
+Test user can use Routine Control By Name service if service have sub-service on ECU
+    Log    Routine Control By Name service: Routine_Control_Start, sub-service: StartIperfServer_Start
+
+    ${param_dict}=    Create Dictionary    port=5101    argument=-i 0.5 -B 192.168.1.
+    ${response}=    Routine Control By Name    Routine_Control_Start    ${param_dict}    sub_service=StartIperfServer
 
     Log    ${response}    console=True
     FOR    ${item}    IN    @{response.keys()}
