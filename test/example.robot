@@ -74,7 +74,6 @@ Test user can use Read Data By Name service on ECU
     ${list_identifers}=    Create List    0x6330
     ${res}=    Read Data By Identifier    ${list_identifers}
     Log    ${res}    console=True
-    Log    ${res}[0]    console=True
 
     Log    readCPUClockFrequencies_Read
 
