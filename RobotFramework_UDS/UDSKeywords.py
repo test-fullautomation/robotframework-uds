@@ -39,6 +39,7 @@ class UDSDevice:
         self.client = None
         self.connector = None
         self.available = False
+        self.communication_name = None
 
 class UDSKeywords:
     def __init__(self):
@@ -254,6 +255,7 @@ Establishes a connection with an ECU.
         uds_device = UDSDevice()
         uds_device.name = device_name
         uds_device.connector = connector
+        uds_device.communication_name = communication_name
         self.uds_manager.uds_device[device_name] = uds_device
 
     @keyword("Load PDX")
@@ -1822,3 +1824,27 @@ Sends a UDS request by the name of the specified diagnostic service.
           logger.info(f"Sending {service_name} to write memory by address service")
           response = self.write_memory_by_address(kwargs.get("memory_location", None), kwargs.get("data", None), device_name)
       return response
+
+    @keyword("Reconnect")
+    def reconnect(self, close_delay=2, device_name="default"):
+        """
+Attempts to re-establish the connection.
+
+**Arguments:**
+* ``close_delay``
+
+  / *Condition*: optional / *Type*: float / *Default*: 2 second /
+
+  Time to wait between closing and re-opening socket
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+
+  Name of the device to which the UDS request will be sent.
+        """
+        uds_device = self.__device_check(device_name)
+        if uds_device.communication_name == "doip":
+            uds_device.connector.reconnect(close_delay)
+        else:
+            logger.info(f"The {uds_device.communication_name} connection is not yet supported.")
