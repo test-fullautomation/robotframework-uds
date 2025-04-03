@@ -123,7 +123,7 @@ Please refer to `RobotFramework_UDS documentation <https://github.com/test-fulla
 for more details.
 "
                                        ],
-                   "0.14.1." : [
+                   "0.14.1.;0.15.0." : [
 "
 **Support new pdx format using TABLE-KEY.**
 
@@ -131,11 +131,11 @@ for more details.
 
 * ``Reconnect``
 
-The ``Reconnect` keyword to enable users to attempt re-establishing the connection
+The ``Reconnect`` keyword to enable users to attempt re-establishing the connection
 
 Please refer to `RobotFramework_UDS documentation <https://github.com/test-fullautomation/robotframework-uds/blob/develop/RobotFramework_UDS/RobotFramework_UDS.pdf>`_
 for more details.
 "
-                                       ],
+                                       ]
                  }
 }
