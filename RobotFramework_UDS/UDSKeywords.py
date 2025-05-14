@@ -1508,12 +1508,11 @@ Get diagnostic service list by a list of service names.
             service_name = service_name_list[i]
             updated_response[service_name] = dict()
             for did, did_res in service_data.items():
-                sub_service_name = did_mapping[service_name][did]
                 for item in list(did_res.values()):
-                    if isinstance(item, tuple):
+                    if isinstance(item, tuple) and len(item)>1:
                         updated_response[service_name] = item[1]
                     elif isinstance(item, dict):
-                        updated_response[service_name] = did_res[sub_service_name]
+                        updated_response[service_name] = did_res
 
                 if len(updated_response[service_name]) == 0:
                     updated_response[service_name] = did_res
