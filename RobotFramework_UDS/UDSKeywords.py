@@ -1678,13 +1678,17 @@ Sends a request for the IOControl service by name of input output control servic
             did_codec = PDXCodec(io_control_service, list(data_id.keys())[0], sub_service)
             uds_device.config['input_output'].update({did_codec.did: did_codec})
             response = self.io_control(list(data_id.keys())[0], control_param, value, mask, device_name)
+            service_data = responses.service_data.values
+            updated_response = {sub_service: service_data}
         else:
             did_codec = PDXCodec(io_control_service, data_id)
             uds_device.config['input_output'].update({data_id: did_codec})
             # Process io control request and get response data
             response = self.io_control(data_id, control_param, value, mask, device_name)
+            service_data = responses.service_data.values
+            updated_response = {io_control_name: service_data}
 
-        return response
+        return updated_response
 
     @keyword("Send UDS Request By Name")
     def send_uds_request_by_name(self, service_name = None, device_name="default", **kwargs):
