@@ -392,6 +392,102 @@ Creates a configuration for the UDS connector.
 
         return config
 
+    @keyword("Get UDS Device Config By Keys")
+    def get_uds_device_config_by_keys(self, keys: list[str] = [], device_name="default"):
+        """
+Retrieves the UDS device configuration for the specified keys.
+
+**Arguments:**
+
+* ``keys``
+
+  / *Condition*: optional / *Type*: list /
+  A list of configuration keys to retrieve from the UDS device.
+  If no keys are provided, the full configuration will be returned.
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+  The name of the device for which the configuration should be retrieved.
+
+**Returns:**
+
+* ``configs``
+
+  / *Type*: dict /
+  A dictionary containing the configuration values for the specified keys.
+        """
+        uds_device = self.__device_check(device_name)
+        if len(keys) == 0:
+            return uds_device.config
+
+        configs = dict()
+
+        for key in keys:
+            try:
+                config_value = uds_device.config[key]
+                configs[key] = config_value
+            except KeyError:
+                raise KeyError(f"Key '{key}' does not exist in the UDS configuration for device '{device_name}'.")
+        return configs
+
+    def __update_uds_device_config_by_key(self, key: str, value: Any, device_name="default"):
+        """
+Updates the UDS device configuration by a single key-value pair.
+
+**Arguments:**
+
+* ``key``
+
+  / *Condition*: required / *Type*: str /
+  The configuration key to update in the UDS device configuration.
+
+* ``value``
+
+  / *Condition*: required / *Type*: Any /
+  The new value to set for the specified key in the UDS device configuration.
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+  The name of the device for which the configuration should be updated. If the device does not exist, a `ValueError` will be raised.
+
+**Returns:**
+* No return value. The method updates the configuration of the specified UDS device with the provided key-value pair.
+        """
+        uds_device = self.__device_check(device_name)
+        try:
+            uds_device.client.set_config(key, value)
+        except ValueError:
+            raise ValueError(f"Key '{key}' does not exist in the UDS configuration for device '{device_name}'.")
+
+    @keyword("Update UDS Device Config By Keys")
+    def update_uds_device_config_by_keys(self, keys_dict: dict, device_name="default"):
+        """
+Updates the UDS device configuration by multiple keys.
+
+**Arguments:**
+
+* ``keys_dict``
+
+  / *Condition*: required / *Type*: dict /
+  A dictionary where keys are configuration keys and values are the new values to set for those keys.
+
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+  The name of the device for which the configuration should be updated. If the device does not exist, a `ValueError` will be raised.
+
+**Returns:**
+
+* No return value. The method updates the configuration of the specified UDS device with the provided key-value pairs.
+        """
+        if keys_dict == None or len(keys_dict) == 0:
+            raise Exception("No keys provided to update the UDS device configuration.")
+        keys = keys_dict.keys()
+        for key in keys:
+            self.__update_uds_device_config_by_key(key, keys_dict[key], device_name)
+
     @keyword("Set UDS Config")
     def set_config(self, config, device_name="default"):
         """
@@ -399,15 +495,19 @@ This method sets the UDS config.
 
 **Arguments:**
 
-* No specific arguments for this method.
-
-**Returns:**
-
 * ``config``
 
   / *Type*: Configuration /
 
-  Returns the new UDS configuration created by `create_configure` or the default config if none is provided.
+  The configuration to set for the UDS client.
+* ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Condition*: optional / *Default*: "default" /
+  The name of the device for which the configuration should be set. If the device does not exist, a `ValueError` will be raised.
+
+**Returns:**
+
+* No return value. The method updates the configuration of the specified UDS device with the provided configuration.
         """
         uds_device = self.__device_check(device_name)
         uds_device.client.set_configs(config)
@@ -419,7 +519,14 @@ Opens a UDS connection.
 
 **Arguments:**
 
-* No specific arguments for this method.
+  * ``device_name``
+
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
+  The name of the device for which the configuration should be set. If the device does not exist, a `ValueError` will be raised.
+
+**Returns:**
+
+* No return value. The method opens the UDS connection for the specified device.
         '''
         uds_device = self.__device_check(device_name)
         uds_device.uds_connector.open()
