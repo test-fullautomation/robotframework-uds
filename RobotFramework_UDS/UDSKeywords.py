@@ -482,7 +482,7 @@ Updates the UDS device configuration by multiple keys.
 
 * No return value. The method updates the configuration of the specified UDS device with the provided key-value pairs.
         """
-        if keys_dict == None or len(keys_dict) == 0:
+        if keys_dict is None or len(keys_dict) == 0:
             raise Exception("No keys provided to update the UDS device configuration.")
         keys = keys_dict.keys()
         for key in keys:
@@ -502,7 +502,7 @@ This method sets the UDS config.
   The configuration to set for the UDS client.
 * ``device_name``
 
-  / *Condition*: optional / *Type*: str / *Condition*: optional / *Default*: "default" /
+  / *Condition*: optional / *Type*: str / *Default*: "default" /
   The name of the device for which the configuration should be set. If the device does not exist, a `ValueError` will be raised.
 
 **Returns:**
@@ -519,7 +519,7 @@ Opens a UDS connection.
 
 **Arguments:**
 
-  * ``device_name``
+* ``device_name``
 
   / *Condition*: optional / *Type*: str / *Default*: "default" /
   The name of the device for which the configuration should be set. If the device does not exist, a `ValueError` will be raised.
