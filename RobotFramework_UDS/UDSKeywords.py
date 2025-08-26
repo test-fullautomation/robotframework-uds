@@ -434,7 +434,7 @@ Retrieves the UDS device configuration for the specified keys.
   A dictionary containing the configuration values for the specified keys.
         """
         uds_device = self.__device_check(device_name)
-        if len(keys) == 0:
+        if not keys:
             return uds_device.config
 
         configs = dict()
