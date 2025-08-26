@@ -483,7 +483,7 @@ Updates the UDS device configuration by multiple keys.
 * No return value. The method updates the configuration of the specified UDS device with the provided key-value pairs.
         """
         if keys_dict is None or len(keys_dict) == 0:
-            raise Exception("No keys provided to update the UDS device configuration.")
+            raise ValueError("No keys provided to update the UDS device configuration.")
         keys = keys_dict.keys()
         for key in keys:
             self.__update_uds_device_config_by_key(key, keys_dict[key], device_name)
