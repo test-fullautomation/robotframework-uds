@@ -18,7 +18,29 @@ from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
 from enum import Enum
-import udsoncan
+import udsoncan,can,os,isotp
+import datetime as dt
+
+# ISO-TP parameters (important for UDS over CAN)
+isotp_params = {
+ 'stmin': 32,                            # Will request the sender to wait 32ms between consecutive frame. 0-127ms or 100-900ns with values from 0xF1-0xF9
+ 'blocksize': 8,                         # Request the sender to send 8 consecutives frames before sending a new flow control message
+ 'wftmax': 0,                            # Number of wait frame allowed before triggering an error
+ 'tx_data_length': 8,                    # Link layer (CAN layer) works with 8 byte payload (CAN 2.0)
+ # Minimum length of CAN messages. When different from None, messages are padded to meet this length. Works with CAN 2.0 and CAN FD.
+ 'tx_data_min_length': None,
+ 'tx_padding': 0,                        # Will pad all transmitted CAN messages with byte 0x00.
+ 'rx_flowcontrol_timeout': 1000,         # Triggers a timeout if a flow control is awaited for more than 1000 milliseconds
+ 'rx_consecutive_frame_timeout': 1000,   # Triggers a timeout if a consecutive frame is awaited for more than 1000 milliseconds
+ 'override_receiver_stmin': None,        # When sending, respect the stmin requirement of the receiver. Could be set to a float value in seconds.
+ 'max_frame_size': 4095,                 # Limit the size of receive frame.
+ 'can_fd': False,                        # Does not set the can_fd flag on the output CAN messages
+ 'bitrate_switch': False,                # Does not set the bitrate_switch flag on the output CAN messages
+ 'rate_limit_enable': False,             # Disable the rate limiter
+ 'rate_limit_max_bitrate': 1000000,      # Ignored when rate_limit_enable=False. Sets the max bitrate when rate_limit_enable=True
+ 'rate_limit_window_size': 0.2,          # Ignored when rate_limit_enable=False. Sets the averaging window size for bitrate calculation when rate_limit_enable=True
+ 'listen_mode': False,                   # Does not use the listen_mode which prevent transmission.
+}
 
 class UDSDeviceManager:
     def __init__(self):
@@ -40,6 +62,7 @@ class UDSDevice:
         self.connector = None
         self.available = False
         self.communication_name = None
+        self.vector_bus = None
 
 class UDSKeywords:
     def __init__(self):
@@ -105,9 +128,14 @@ Connects a UDS connector for the specified device.
             if self.uds_manager.uds_device[device_name].available:
                 logger.info(f"Device {device_name} is available to be use.")
             else:
+              if self.uds_manager.uds_device[device_name].communication_name.lower() == "doip":
                 self.uds_manager.uds_device[device_name].config = config
                 self.uds_manager.uds_device[device_name].uds_connector = DoIPClientUDSConnector(self.uds_manager.uds_device[device_name].connector, device_name, close_connection)
                 self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].uds_connector, self.uds_manager.uds_device[device_name].config)
+                self.uds_manager.uds_device[device_name].available = True
+              elif self.uds_manager.uds_device[device_name].communication_name.lower() == "can":
+                self.uds_manager.uds_device[device_name].config = config
+                self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].connector, self.uds_manager.uds_device[device_name].config)
                 self.uds_manager.uds_device[device_name].available = True
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
@@ -233,7 +261,7 @@ Establishes a connection with an ECU.
 
         elif communication_name.lower() == "can":
             # Define required parameters
-            required_params = ['interface', 'txid', 'rxid', 'baudrate']
+            required_params = ['interface', 'channel','txid', 'rxid', 'baudrate']
 
             # Check for missing required parameters and raise an error if any are missing
             missing_params = [param for param in required_params if param not in kwargs]
@@ -242,20 +270,25 @@ Establishes a connection with an ECU.
                 raise ValueError(f"Missing required parameter(s): {', '.join(missing_params)}")
 
             # Extract parameters from kwargs or set default values if they are optional
-            interface = kwargs['interface_name']
-            txid = int(kwargs['txid'], 16)
-            rxid = int(kwargs['rxid'], 16)
+            interface = kwargs['interface']
+            channel = int(kwargs['channel'],16)
+            tx_id = int(kwargs['txid'], 16)
+            rx_id = int(kwargs['rxid'], 16)
             baudrate = kwargs['baudrate']
+            can_app_name = kwargs.get('app_name', 'python-can')
 
-            connector = PythonIsoTpConnection(interface,
-                                                   txid,
-                                                   rxid,
-                                                   baudrate)
+            self.vbus = can.interface.Bus(
+            interface=interface, channel=channel, bitrate=baudrate,app_name=can_app_name,receive_own_messages=False)
+            self.tp_addr = isotp.Address(isotp.AddressingMode.Normal_11bits, txid=tx_id, rxid=rx_id) # Network layer addressing scheme
+            self.stack = isotp.CanStack(bus=self.vbus, address=self.tp_addr, params=isotp_params)
+            connector = PythonIsoTpConnection(self.stack)
 
         uds_device = UDSDevice()
         uds_device.name = device_name
         uds_device.connector = connector
         uds_device.communication_name = communication_name
+        if communication_name.lower() == "can":
+          uds_device.vector_bus = self.vbus
         self.uds_manager.uds_device[device_name] = uds_device
 
     @keyword("Load PDX")
@@ -422,7 +455,10 @@ Opens a UDS connection.
 * No specific arguments for this method.
         '''
         uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.open()
+        if uds_device.communication_name.lower() == "doip":
+          uds_device.uds_connector.open()
+        elif uds_device.communication_name.lower() == "can":
+          self.uds_manager.uds_device[device_name].client.open()
 
     @keyword("Close UDS Connection")
     def disconnect(self, device_name="default"):
@@ -434,7 +470,11 @@ Closes a UDS connection.
 * No specific arguments for this method.
         '''
         uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.close()
+        if uds_device.communication_name.lower() == "doip":
+          uds_device.uds_connector.close()
+        elif uds_device.communication_name.lower() == "can":
+          self.uds_manager.uds_device[device_name].client.close()
+          self.uds_manager.uds_device[device_name].vector_bus.shutdown()
 
     @keyword("Access Timing Parameter")
     def access_timing_parameter(self, access_type: int, timing_param_record: Optional[bytes] = None, device_name="default"):
