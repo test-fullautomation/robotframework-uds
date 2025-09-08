@@ -6,3 +6,5 @@ robotframework
 udsoncan
 doipclient
 odxtools>=8.2.1
+python-can>=4.5.0
+can-isotp>=2.0.6
