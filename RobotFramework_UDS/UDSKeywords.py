@@ -287,7 +287,7 @@ Establishes a connection with an ECU.
 
             # Extract parameters from kwargs or set default values if they are optional
             interface = kwargs['interface']
-            channel = int(kwargs['channel'],16)
+            channel = int(kwargs['channel'])
             tx_id = int(kwargs['txid'], 16)
             rx_id = int(kwargs['rxid'], 16)
             baudrate = kwargs['baudrate']
