@@ -293,18 +293,18 @@ Establishes a connection with an ECU.
             baudrate = kwargs['baudrate']
             can_app_name = kwargs.get('app_name', 'python-can')
 
-            self.vbus = can.interface.Bus(
+            vbus = can.interface.Bus(
             interface=interface, channel=channel, bitrate=baudrate,app_name=can_app_name,receive_own_messages=False)
-            self.tp_addr = isotp.Address(isotp.AddressingMode.Normal_11bits, txid=tx_id, rxid=rx_id) # Network layer addressing scheme
-            self.stack = isotp.CanStack(bus=self.vbus, address=self.tp_addr, params=isotp_params)
-            connector = PythonIsoTpConnection(self.stack)
+            tp_addr = isotp.Address(isotp.AddressingMode.Normal_11bits, txid=tx_id, rxid=rx_id) # Network layer addressing scheme
+            stack = isotp.CanStack(bus=vbus, address=tp_addr, params=isotp_params)
+            connector = PythonIsoTpConnection(stack)
 
         uds_device = UDSDevice()
         uds_device.name = device_name
         uds_device.connector = connector
         uds_device.communication_name = communication_name
         if communication_name.lower() == "can":
-          uds_device.vector_bus = self.vbus
+          uds_device.vector_bus = vbus
         self.uds_manager.uds_device[device_name] = uds_device
 
     @keyword("Load PDX")
