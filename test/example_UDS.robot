@@ -45,8 +45,8 @@ Using pdx
 Test user can use Tester Present service on ECU
     Log    Use Tester Present service
     ${response}=    Tester Present    device_name=${UDS_DEVICE_NAME}
-    ${sesion_response}    Diagnostic Session Control    3    device_name=${UDS_DEVICE_NAME}
-    Log    ${sesion_response}    console=True
+    ${session_response}    Diagnostic Session Control    3    device_name=${UDS_DEVICE_NAME}
+    Log    ${session_response}    console=True
 
 
 Test user can use Read Data By Identifier service on ECU
