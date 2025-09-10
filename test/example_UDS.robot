@@ -1,7 +1,7 @@
 *** Settings ***
 Library    RobotFramework_TestsuitesManagement    WITH NAME    testsuites
 Library    BuiltIn
-Library    ${CURDIR}\\..\\RobotFramework_UDS
+Library    RobotFramework_UDS
 Suite Setup    Connect
 Suite Teardown    Disconnect
 
@@ -16,6 +16,12 @@ ${UDS_DEVICE_NAME}        uds_can
 ${FILE}=       ${CURDIR}/pdx/PDX_Suz_DA3_Ver1.7.pdx
 ${VARIANT}=    Suz_DA3_DA3_SVS
 
+#Important: Isotp Parameters can me updated for specific HW interfaces if needed.Below are default values.
+&{isotp_config_params}    stmin=${32}    blocksize=${8}    wftmax=${0}    tx_data_length=${8}
+...    tx_data_min_length=${None}    tx_padding=${0}    rx_flowcontrol_timeout=${1000}    rx_consecutive_frame_timeout=${1000}
+...    override_receiver_stmin=${None}    max_frame_size=${4095}    can_fd=${False}    bitrate_switch=${False}
+...    rate_limit_enable=${False}    rate_limit_max_bitrate=${1000000}    rate_limit_window_size=${0.2}    listen_mode=${False}
+
 *** Keywords ***
 Connect
     Log    Create a uds Connector
@@ -27,6 +33,7 @@ Connect
     ...                     txid= ${TX_INTERFACE}
     ...                     rxid= ${RX_INTERFACE}
     ...                     baudrate=500000
+    ...                     isotp_config=&{isotp_config_params}
 
     Log    Using UDS Connector
     Connect UDS Connector    device_name=${UDS_DEVICE_NAME}

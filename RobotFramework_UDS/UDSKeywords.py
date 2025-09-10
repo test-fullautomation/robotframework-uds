@@ -37,26 +37,7 @@ from enum import Enum
 import udsoncan,can,os,isotp
 import datetime as dt
 
-# ISO-TP parameters (important for UDS over CAN)
-isotp_params = {
- 'stmin': 32,                            # Will request the sender to wait 32ms between consecutive frame. 0-127ms or 100-900ns with values from 0xF1-0xF9
- 'blocksize': 8,                         # Request the sender to send 8 consecutives frames before sending a new flow control message
- 'wftmax': 0,                            # Number of wait frame allowed before triggering an error
- 'tx_data_length': 8,                    # Link layer (CAN layer) works with 8 byte payload (CAN 2.0)
- # Minimum length of CAN messages. When different from None, messages are padded to meet this length. Works with CAN 2.0 and CAN FD.
- 'tx_data_min_length': None,
- 'tx_padding': 0,                        # Will pad all transmitted CAN messages with byte 0x00.
- 'rx_flowcontrol_timeout': 1000,         # Triggers a timeout if a flow control is awaited for more than 1000 milliseconds
- 'rx_consecutive_frame_timeout': 1000,   # Triggers a timeout if a consecutive frame is awaited for more than 1000 milliseconds
- 'override_receiver_stmin': None,        # When sending, respect the stmin requirement of the receiver. Could be set to a float value in seconds.
- 'max_frame_size': 4095,                 # Limit the size of receive frame.
- 'can_fd': False,                        # Does not set the can_fd flag on the output CAN messages
- 'bitrate_switch': False,                # Does not set the bitrate_switch flag on the output CAN messages
- 'rate_limit_enable': False,             # Disable the rate limiter
- 'rate_limit_max_bitrate': 1000000,      # Ignored when rate_limit_enable=False. Sets the max bitrate when rate_limit_enable=True
- 'rate_limit_window_size': 0.2,          # Ignored when rate_limit_enable=False. Sets the averaging window size for bitrate calculation when rate_limit_enable=True
- 'listen_mode': False,                   # Does not use the listen_mode which prevent transmission.
-}
+
 
 class UDSDeviceManager:
     def __init__(self):
@@ -277,7 +258,7 @@ Establishes a connection with an ECU.
 
         elif communication_name.lower() == "can":
             # Define required parameters
-            required_params = ['interface', 'channel','txid', 'rxid', 'baudrate']
+            required_params = ['interface', 'channel','txid', 'rxid', 'baudrate','isotp_config']
 
             # Check for missing required parameters and raise an error if any are missing
             missing_params = [param for param in required_params if param not in kwargs]
@@ -291,12 +272,13 @@ Establishes a connection with an ECU.
             tx_id = int(kwargs['txid'], 16)
             rx_id = int(kwargs['rxid'], 16)
             baudrate = kwargs['baudrate']
+            isotp_config = kwargs.get('isotp_config')
             can_app_name = kwargs.get('app_name', 'python-can')
 
             vbus = can.interface.Bus(
             interface=interface, channel=channel, bitrate=baudrate,app_name=can_app_name,receive_own_messages=False)
             tp_addr = isotp.Address(isotp.AddressingMode.Normal_11bits, txid=tx_id, rxid=rx_id) # Network layer addressing scheme
-            stack = isotp.CanStack(bus=vbus, address=tp_addr, params=isotp_params)
+            stack = isotp.CanStack(bus=vbus, address=tp_addr, params=isotp_config)
             connector = PythonIsoTpConnection(stack)
 
         uds_device = UDSDevice()
