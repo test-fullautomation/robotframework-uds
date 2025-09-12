@@ -34,7 +34,10 @@ from udsoncan.typing import ClientConfig
 from doipclient import DoIPClient, constants, messages
 from udsoncan.connections import PythonIsoTpConnection
 from enum import Enum
-import udsoncan
+import udsoncan,can,os,isotp
+import datetime as dt
+
+
 
 class UDSDeviceManager:
     def __init__(self):
@@ -56,6 +59,7 @@ class UDSDevice:
         self.connector = None
         self.available = False
         self.communication_name = None
+        self.vector_bus = None
 
 class UDSKeywords:
     def __init__(self):
@@ -121,10 +125,16 @@ Connects a UDS connector for the specified device.
             if self.uds_manager.uds_device[device_name].available:
                 logger.info(f"Device {device_name} is available to be use.")
             else:
-                self.uds_manager.uds_device[device_name].config = config
-                self.uds_manager.uds_device[device_name].uds_connector = DoIPClientUDSConnector(self.uds_manager.uds_device[device_name].connector, device_name, close_connection)
-                self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].uds_connector, self.uds_manager.uds_device[device_name].config)
-                self.uds_manager.uds_device[device_name].available = True
+                communication_type = self.uds_manager.uds_device[device_name].communication_name.lower()
+                if communication_type == "doip":
+                    self.uds_manager.uds_device[device_name].config = config
+                    self.uds_manager.uds_device[device_name].uds_connector = DoIPClientUDSConnector(self.uds_manager.uds_device[device_name].connector, device_name, close_connection)
+                    self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].uds_connector, self.uds_manager.uds_device[device_name].config)
+                    self.uds_manager.uds_device[device_name].available = True
+                elif communication_type == "can":
+                    self.uds_manager.uds_device[device_name].config = config
+                    self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].connector, self.uds_manager.uds_device[device_name].config)
+                    self.uds_manager.uds_device[device_name].available = True
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
@@ -249,7 +259,7 @@ Establishes a connection with an ECU.
 
         elif communication_name.lower() == "can":
             # Define required parameters
-            required_params = ['interface', 'txid', 'rxid', 'baudrate']
+            required_params = ['interface', 'channel','txid', 'rxid', 'baudrate','isotp_config']
 
             # Check for missing required parameters and raise an error if any are missing
             missing_params = [param for param in required_params if param not in kwargs]
@@ -258,20 +268,26 @@ Establishes a connection with an ECU.
                 raise ValueError(f"Missing required parameter(s): {', '.join(missing_params)}")
 
             # Extract parameters from kwargs or set default values if they are optional
-            interface = kwargs['interface_name']
-            txid = int(kwargs['txid'], 16)
-            rxid = int(kwargs['rxid'], 16)
+            interface = kwargs['interface']
+            channel = int(kwargs['channel'])
+            tx_id = int(kwargs['txid'], 16)
+            rx_id = int(kwargs['rxid'], 16)
             baudrate = kwargs['baudrate']
+            isotp_config = kwargs.get('isotp_config')
+            can_app_name = kwargs.get('app_name', 'python-can')
 
-            connector = PythonIsoTpConnection(interface,
-                                                   txid,
-                                                   rxid,
-                                                   baudrate)
+            vbus = can.interface.Bus(
+            interface=interface, channel=channel, bitrate=baudrate,app_name=can_app_name,receive_own_messages=False)
+            tp_addr = isotp.Address(isotp.AddressingMode.Normal_11bits, txid=tx_id, rxid=rx_id) # Network layer addressing scheme
+            stack = isotp.CanStack(bus=vbus, address=tp_addr, params=isotp_config)
+            connector = PythonIsoTpConnection(stack)
 
         uds_device = UDSDevice()
         uds_device.name = device_name
         uds_device.connector = connector
         uds_device.communication_name = communication_name
+        if communication_name.lower() == "can":
+          uds_device.vector_bus = vbus
         self.uds_manager.uds_device[device_name] = uds_device
 
     @keyword("Load PDX")
@@ -545,7 +561,10 @@ Opens a UDS connection.
 * No return value. The method opens the UDS connection for the specified device.
         '''
         uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.open()
+        if uds_device.communication_name.lower() == "doip":
+          uds_device.uds_connector.open()
+        elif uds_device.communication_name.lower() == "can":
+          self.uds_manager.uds_device[device_name].client.open()
 
     @keyword("Close UDS Connection")
     def disconnect(self, device_name="default"):
@@ -557,7 +576,11 @@ Closes a UDS connection.
 * No specific arguments for this method.
         '''
         uds_device = self.__device_check(device_name)
-        uds_device.uds_connector.close()
+        if uds_device.communication_name.lower() == "doip":
+          uds_device.uds_connector.close()
+        elif uds_device.communication_name.lower() == "can":
+          self.uds_manager.uds_device[device_name].client.close()
+          self.uds_manager.uds_device[device_name].vector_bus.shutdown()
 
     @keyword("Access Timing Parameter")
     def access_timing_parameter(self, access_type: int, timing_param_record: Optional[bytes] = None, device_name="default"):
