@@ -16,7 +16,7 @@ ${UDS_DEVICE_NAME}        uds_can
 ${FILE}=       ${CURDIR}/pdx/PDX_Suz_DA3_Ver1.7.pdx
 ${VARIANT}=    Suz_DA3_DA3_SVS
 
-#Important: Isotp Parameters can me updated for specific HW interfaces if needed.Below are default values.
+#Important: Isotp Parameters can be updated for specific HW interfaces if needed. Below are default values.
 &{isotp_config_params}    stmin=${32}    blocksize=${8}    wftmax=${0}    tx_data_length=${8}
 ...    tx_data_min_length=${None}    tx_padding=${0}    rx_flowcontrol_timeout=${1000}    rx_consecutive_frame_timeout=${1000}
 ...    override_receiver_stmin=${None}    max_frame_size=${4095}    can_fd=${False}    bitrate_switch=${False}
