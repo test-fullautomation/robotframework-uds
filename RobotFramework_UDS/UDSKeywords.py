@@ -125,15 +125,16 @@ Connects a UDS connector for the specified device.
             if self.uds_manager.uds_device[device_name].available:
                 logger.info(f"Device {device_name} is available to be use.")
             else:
-              if self.uds_manager.uds_device[device_name].communication_name.lower() == "doip":
-                self.uds_manager.uds_device[device_name].config = config
-                self.uds_manager.uds_device[device_name].uds_connector = DoIPClientUDSConnector(self.uds_manager.uds_device[device_name].connector, device_name, close_connection)
-                self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].uds_connector, self.uds_manager.uds_device[device_name].config)
-                self.uds_manager.uds_device[device_name].available = True
-              elif self.uds_manager.uds_device[device_name].communication_name.lower() == "can":
-                self.uds_manager.uds_device[device_name].config = config
-                self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].connector, self.uds_manager.uds_device[device_name].config)
-                self.uds_manager.uds_device[device_name].available = True
+                communication_type = self.uds_manager.uds_device[device_name].communication_name.lower()
+                if communication_type == "doip":
+                    self.uds_manager.uds_device[device_name].config = config
+                    self.uds_manager.uds_device[device_name].uds_connector = DoIPClientUDSConnector(self.uds_manager.uds_device[device_name].connector, device_name, close_connection)
+                    self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].uds_connector, self.uds_manager.uds_device[device_name].config)
+                    self.uds_manager.uds_device[device_name].available = True
+                elif communication_type == "can":
+                    self.uds_manager.uds_device[device_name].config = config
+                    self.uds_manager.uds_device[device_name].client = Client(self.uds_manager.uds_device[device_name].connector, self.uds_manager.uds_device[device_name].config)
+                    self.uds_manager.uds_device[device_name].available = True
         else:
             raise ValueError(f"Device with name '{device_name}' does not exists. Please use keyword \"Create UDS Connector\" to create a new one.")
 
