@@ -26,7 +26,7 @@ from udsoncan.common.Filesize import Filesize
 from udsoncan.common.Baudrate import Baudrate
 from udsoncan.common.DataFormatIdentifier import DataFormatIdentifier
 from udsoncan.common.dtc import Dtc
-from .DiagnosticServices import DiagnosticServices, PDXCodec, ServiceID
+from RobotFramework_UDS.DiagnosticServices import DiagnosticServices, PDXCodec, ServiceID
 from udsoncan.configs import default_client_config
 from udsoncan import latest_standard
 from typing import cast
