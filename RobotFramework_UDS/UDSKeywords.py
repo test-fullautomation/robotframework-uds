@@ -1583,12 +1583,14 @@ Sends a request for the RoutineControl service by routine name.
         if data is not None:
             # Encoded data to bytes
             if isinstance(data, dict):
+                original_data = data
                 original_encode_message = self.get_encoded_request_message(routine_name, data, device_name, sub_service)
 
                 # Remove the first 4 bytes since the UDS library automatically adds the first 4 bytes for the service id and control type.
                 data = original_encode_message[4:]
-                logger.info(f"The encode message send to UDS: {data}")
+                logger.info(f"Encoded UDS message {data} from input data {original_data}")
 
+        logger.info(f"The routine id: {routine_id}, control type: {control_type}, data: {data}")
         response = self.routine_control(routine_id, control_type, data, device_name)
 
         # Decode response message
