@@ -72,7 +72,7 @@ Recursive convert sub parameters in given request to correct data type
                     #convert byte string to hex data
                     org_val = bytes(match.group(1), "latin1").hex()
         except:
-            raise Exception(f"required parameter {odx_param.short_name} is missing")
+            raise Exception(f"Required parameter {odx_param.short_name} is missing")
 
         if odx_param.dop and hasattr(odx_param.dop, "parameters"):
             for sub_param in odx_param.dop.parameters:
@@ -335,21 +335,28 @@ class PDXCodec(DidCodec):
         self.sub_service = sub_service
 
     def decode(self, string_bin: bytes):
-        parameters = self.service.positive_responses[0].parameters
-        response_prefix_hex = ""
-        # Get all CODED-CONST and insert to response message for decoding
-        # SID_PR
-        # DataIdentifier
-        # ControlParam (IC Control Service)
-        # ...
-        for par in parameters:
-            if par.parameter_type == "CODED-CONST":
-                response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
-            elif par.parameter_type == "MATCHING-REQUEST-PARAM":
-                response_prefix_hex = response_prefix_hex + f"{self.did:02x}"
+        try:
+            logger.info(f"Starting decode process for input binary data {string_bin}")
+            parameters = self.service.positive_responses[0].parameters
+            response_prefix_hex = ""
+            # Get all CODED-CONST and insert to response message for decoding
+            # SID_PR
+            # DataIdentifier
+            # ControlParam (IC Control Service)
+            # ...
+            for par in parameters:
+                if par.parameter_type == "CODED-CONST":
+                    response_prefix_hex = response_prefix_hex + f"{par.coded_value:02x}"
+                elif par.parameter_type == "MATCHING-REQUEST-PARAM":
+                    response_prefix_hex = response_prefix_hex + f"{self.did:02x}"
 
-        string_hex = "".join([response_prefix_hex, string_bin.hex()])
-        response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
+            string_hex = "".join([response_prefix_hex, string_bin.hex()])
+            logger.info(f"Constructed hex string for decoding {string_hex}")
+            response = self.service.decode_message(bytearray.fromhex(string_hex)).param_dict
+            logger.info(f"Decoded response: {response}")
+        except Exception as e:
+            logger.error(f"Failed to decode {self.service.short_name} message.")
+            raise Exception(f"Reason: {e}")
         return response
 
     def encode(self, *parameter_val, **parameter_dict):
@@ -395,7 +402,8 @@ class PDXCodec(DidCodec):
                 # ControlParam (IC Control Service): 1 byte
                 # ...
                 encode_message = bytes(self.service.encode_request(**parameter_dict))[pos_param:]
-                logger.info(f"Encode message: {encode_message}")
+
+            logger.info(f"Encode message: {encode_message}")
         except Exception as e:
             logger.error(f"Failed to encode {self.service.short_name} message.")
             raise Exception(f"Reason: {e}")
