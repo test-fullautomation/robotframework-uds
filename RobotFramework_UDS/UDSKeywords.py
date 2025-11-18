@@ -36,8 +36,7 @@ from udsoncan.connections import PythonIsoTpConnection
 from enum import Enum
 import udsoncan,can,os,isotp
 import datetime as dt
-
-
+from RobotFramework_UDS.version import VERSION
 
 class UDSDeviceManager:
     def __init__(self):
@@ -50,6 +49,8 @@ class UDSDeviceManager:
         return False
 
 class UDSDevice:
+    ROBOT_LIBRARY_VERSION    = VERSION
+
     def __init__(self):
         self.name = None
         self.diag_service_db = None
