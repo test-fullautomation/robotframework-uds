@@ -337,69 +337,84 @@ Creates a configuration for the UDS connector.
 **Arguments:**
 
 * ``exception_on_negative_response`` : bool
+
   When set to True, raises a NegativeResponseException if the server responds with a negative response. If False, the Response's `positive` property will be set to False.
 
 * ``exception_on_invalid_response`` : bool
+
   When set to True, raises an InvalidResponseException if interpret_response encounters an invalid response. If False, the Response's `valid` property will be set to False.
 
 * ``exception_on_unexpected_response`` : bool
+
   When set to True, raises an UnexpectedResponseException if the server returns an unexpected response, such as an unmatched subfunction echo. If False, the Response's `unexpected` property will be set to True.
 
-* ``security_algo`` : Callable[[int, bytes, Any], bytes]
-  Security algorithm function for the SecurityAccess service.
-  Signature: `security_algo(level, seed, params) -> bytes`
+* | ``security_algo`` : Callable[[int, bytes, Any], bytes]
+  | Security algorithm function for the SecurityAccess service.
+  | Signature: `security_algo(level, seed, params) -> bytes`
 
-    - ``level`` : int — The requested security level.
-    - ``seed`` : bytes — The seed provided by the server.
-    - ``params`` : Any — Parameters provided by `security_algo_params`.
+  - ``level`` : int — The requested security level.
+  - ``seed`` : bytes — The seed provided by the server.
+  - ``params`` : Any — Parameters provided by `security_algo_params`.
 
 * ``security_algo_params`` : object or dict
-  Parameters passed to the security algorithm specified in `security_algo`.
+
+  Parameters passed to the security algorithm specified in ``security_algo``.
 
 * ``data_identifiers`` : dict[int, Union[str, DidCodec]]
+
   A dictionary mapping data identifiers to a codec (string or DidCodec) for encoding/decoding values in services like ReadDataByIdentifier, WriteDataByIdentifier, etc.
 
 * ``input_output`` : dict[int, Union[str, DidCodec, dict]]
+
   Dictionary mapping IO data identifiers to a codec for InputOutputControlByIdentifier service. Supports composite codecs with sub-dictionaries specifying bitmasks.
 
 * ``tolerate_zero_padding`` : bool
+
   When True, ignores trailing zeros in response data to prevent InvalidResponseException if the protocol uses zero-padding.
 
 * ``ignore_all_zero_dtc`` : bool
   For ReadDTCInformation service, skips DTCs with an ID of 0x000000, useful if the protocol uses zero-padding. See online documentation for further details.
 
 * ``server_address_format`` : int
+
   Specifies the MemoryLocation address format to use when not explicitly provided.
 
 * ``server_memorysize_format`` : int
+
   Specifies the MemoryLocation memory size format to use when not explicitly provided.
 
 * ``extended_data_size`` : dict[int, int]
+
   Specifies DTC extended data record sizes.
-  Example:
-    ```
-    {
-        0x123456: 45,  # DTC 0x123456 has an extended data size of 45 bytes.
-        0x123457: 23   # DTC 0x123457 has an extended data size of 23 bytes.
-    }
-    ```
+
+  | Example:
+  | ``{``
+  |     ``0x123456: 45,``  # DTC 0x123456 has an extended data size of 45 bytes.
+  |     ``0x123457: 23``   # DTC 0x123457 has an extended data size of 23 bytes.
+  | ``}``
 
 * ``dtc_snapshot_did_size`` : int
+
   Number of bytes for encoding data identifiers in ReadDTCInformation (default: 2).
 
 * ``standard_version`` : int
+
   UDS standard version, valid values are 2006, 2013, or 2020 (default: 2020).
 
 * ``request_timeout`` : float
+
   Maximum wait time (in seconds) for a response after sending a request. Defaults to 5 seconds. Set to None to wait indefinitely.
 
 * ``p2_timeout`` : float
+
   Maximum wait time (in seconds) for a first response after sending a request, per ISO 14229-2:2013 (default: 1 second).
 
 * ``p2_star_timeout`` : float
+
   Maximum wait time (in seconds) after receiving a requestCorrectlyReceived-ResponsePending (0x78) response from the server (default: 5 seconds).
 
 * ``use_server_timing`` : bool
+
   When True, uses P2 and P2* timing values provided by the server for sessions with 2013 or later standards. Defaults to True.
         """
 
@@ -1393,6 +1408,7 @@ Sends a RequestFileTransfer request
   / *Condition*: required / *Type*: int /
 
   Mode of operation:
+
   - AddFile = 1
   - DeleteFile = 2
   - ReplaceFile = 3
@@ -1412,6 +1428,7 @@ Sends a RequestFileTransfer request
 
   DataFormatIdentifier defining the compression and encryption scheme of the data. Defaults to no compression and no encryption.
   Use for:
+
   - AddFile = 1
   - ReplaceFile = 3
   - ReadFile = 4
@@ -1423,6 +1440,7 @@ Sends a RequestFileTransfer request
 
   The filesize of the file to write. If `Filesize`, uncompressed and compressed sizes will be encoded as needed.
   Use for:
+
   - AddFile = 1
   - ReplaceFile = 3
   - ResumeFile = 6
@@ -1461,6 +1479,7 @@ Sends an Authentication request introduced in 2020 version of ISO-14229-1.
   / *Condition*: required / *Type*: int /
 
   The authentication task (subfunction) to use:
+
   - deAuthenticate = 0
   - verifyCertificateUnidirectional = 1
   - verifyCertificateBidirectional = 2
@@ -1554,15 +1573,19 @@ Sends a request for the RoutineControl service by routine name.
 **Arguments:**
 
 * param ``routine_name`` (required): Name of the routine
+
   * type ``routine_name``: str
 
 * param ``data`` (optional): Optional additional data to give to the server
+
   * type ``data``: bytes
 
 **Returns:**
 
 * ``response``
+
   / *Type*: Response /
+
   The server's response to the RoutineControl request.
         """
         response = None
@@ -1892,7 +1915,7 @@ Sends a UDS request by the name of the specified diagnostic service.
   / *Type*: Response /
 
   The decoded response data from the service request.
-"""
+      """
 
       response = None
       # Verify the device is available
@@ -1979,6 +2002,7 @@ Sends a UDS request by the name of the specified diagnostic service.
 Attempts to re-establish the connection.
 
 **Arguments:**
+
 * ``close_delay``
 
   / *Condition*: optional / *Type*: float / *Default*: 2 second /
