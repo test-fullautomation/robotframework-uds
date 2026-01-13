@@ -17,8 +17,7 @@ from .version import VERSION
 
 class RobotFramework_UDS(UDSKeywords):
     """
-    RobotFramework_UDS is a Robot Framework library aimed to provide UDP client to handle request/response.
-
+RobotFramework_UDS is a Robot Framework library aimed to provide UDP client to handle request/response.
     """
     __version__ = VERSION
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
