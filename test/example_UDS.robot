@@ -1,5 +1,5 @@
 *** Settings ***
-Library    RobotFramework_TestsuitesManagement    WITH NAME    testsuites
+Library    RobotFramework_TestsuitesManagement    AS    testsuites
 Library    BuiltIn
 Library    RobotFramework_UDS
 Suite Setup    Connect
