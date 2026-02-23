@@ -5,7 +5,7 @@
 # With the help of a LaTeX compiler the tex files can be converted into a PDF file.
 # This json file contains the required settings.
 #
-# 24.08.2022
+# 23.02.2026
 #
 # **************************************************************************************************************
 # Format: extended json format with the possibility to comment out lines (by '#' at the beginning of the line).
@@ -53,7 +53,7 @@
    "TOC" : {
             "introduction"  : "./additional_docs/Introduction.tex",
             "description"   : "./additional_docs/Description.tex",
-            "INTERFACE"     : "../###PACKAGENAME###",
+            "INTERFACE"     : "../###IMPORTNAME###",
             "appendix"      : "./additional_docs/Appendix.rst",
             "history"       : "./additional_docs/History.tex",
             "DOCUMENTPARTS" : ["introduction","description","INTERFACE","appendix","history"]
@@ -80,9 +80,9 @@
 # The keys in this section also are runtime variables.
 
    "DOCUMENT" : {
-                 "OUTPUTFILENAME" : "###PACKAGENAME###.tex",
+                 "OUTPUTFILENAME" : "###IMPORTNAME###.tex",
                  "AUTHOR"         : "###AUTHOR###",
-                 "TITLE"          : "###PACKAGENAME###",
+                 "TITLE"          : "###IMPORTNAME###",
                  "DATE"           : "###PACKAGEDATE###",
                  "VERSION"        : "###PACKAGEVERSION###"
                 },
@@ -110,7 +110,7 @@
 # This key is optional. In case of it is not required to copy the PDF file to another location,
 # this key can be removed or set to null.
 
-   "PDFDEST" : "../###PACKAGENAME###",
+   "PDFDEST" : "../###IMPORTNAME###",
 
 # Section "TEX":
 # -----------------
