@@ -36,6 +36,7 @@ from udsoncan.connections import PythonIsoTpConnection
 from enum import Enum
 import udsoncan,can,os,isotp
 import datetime as dt
+import traceback
 from RobotFramework_UDS.version import VERSION
 
 class UDSDeviceManager:
@@ -83,6 +84,24 @@ class UDSKeywords:
             except ValueError:
                 raise ValueError(f"Invalid integer string: {value}")
         return value
+
+    def __detect_error_layer(self, exception, service):
+        layer_msg = ""
+
+        tb = traceback.extract_tb(exception.__traceback__)
+
+        for item in reversed(tb):
+            if "doipclient" in item.filename:
+                layer_msg = "DoIP"
+                break
+            elif "udsoncan" in item.filename:
+                layer_msg = "UDS"
+                break
+
+        if layer_msg == "":
+            BuiltIn().fail(f"Fail to send a {service} request. Reason: {exception}")
+        else:
+            BuiltIn().fail(f"Fail to send a {service} request. Layer: {layer_msg} | Reason: {exception}")
 
     @keyword("Connect UDS Connector")
     def connect_uds_connector(self, device_name="default", config=default_client_config, close_connection=False):
@@ -631,7 +650,10 @@ Sends a generic request for AccessTimingParameter service.
   The response from the AccessTimingParameter service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.access_timing_parameter(access_type, timing_param_record)
+        try:
+            response = uds_device.client.access_timing_parameter(access_type, timing_param_record)
+        except Exception as e:
+            self.__detect_error_layer(e, "Access Timing Parameter")
         return response
 
     @keyword("Clear Diagnostic Information")
@@ -665,7 +687,10 @@ Requests the server to clear its active Diagnostic Trouble Codes.
   The response from the server after attempting to clear the active Diagnostic Trouble Codes.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.clear_dtc(group, memory_selection)
+        try:
+            response = uds_device.client.clear_dtc(group, memory_selection)
+        except Exception as e:
+            self.__detect_error_layer(e, "Clear Diagnostic Information")
         return response
 
     @keyword("Communication Control")
@@ -709,7 +734,10 @@ Switches the transmission or reception of certain messages on/off with Communica
   The response from the CommunicationControl service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.communication_control(control_type, communication_type, node_id)
+        try:
+            response = uds_device.client.communication_control(control_type, communication_type, node_id)
+        except Exception as e:
+            self.__detect_error_layer(e, "Communication Control")
         return response
 
     @keyword("Control DTC Setting")
@@ -746,7 +774,10 @@ It can enable/disable some DTCs or perform some ECU-specific configuration.
   The response from the ControlDTCSetting service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.control_dtc_setting(setting_type, data)
+        try:
+            response = uds_device.client.control_dtc_setting(setting_type, data)
+        except Exception as e:
+            self.__detect_error_layer(e, "Control DTC Setting")
         return response
 
     @keyword("Diagnostic Session Control")
@@ -778,7 +809,10 @@ Requests the server to change the diagnostic session with a DiagnosticSessionCon
         uds_device = self.__device_check(device_name)
         if isinstance(session_type, str):
             session_type = int(session_type)
-        response = uds_device.client.change_session(session_type)
+        try:
+            response = uds_device.client.change_session(session_type)
+        except Exception as e:
+            self.__detect_error_layer(e, "Diagnostic Session Control")
         return response
 
     @keyword("Dynamically Define Data Identifier")
@@ -847,7 +881,7 @@ Requests the server to execute a reset sequence through the ECUReset service.
         try:
             response = uds_device.client.ecu_reset(reset_type)
         except Exception as e:
-            BuiltIn().fail(f"Fail to send a ECU Reset request. Reason: {e}")
+            self.__detect_error_layer(e, "ECU Reset")
         return response
 
     @keyword("Input Output Control By Identifier")
@@ -909,9 +943,12 @@ Substitutes the value of an input signal or overrides the state of an output by 
   The decoded response data.
         """
         uds_device = self.__device_check(device_name)
-
-        response = uds_device.client.io_control(did, control_param, values, masks)
-        logger.info(response.service_data.decoded_data)
+        try:
+            response = uds_device.client.io_control(did, control_param, values, masks)
+            logger.info(response.service_data.decoded_data)
+        except Exception as e:
+            self.__detect_error_layer(e, "IO Control")
+            
         return response.service_data.decoded_data
 
     @keyword("Link Control")
@@ -946,7 +983,10 @@ Controls the communication baudrate by sending a LinkControl service request.
   The response from the LinkControl service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.link_control(control_type, baudrate)
+        try:
+            response = uds_device.client.link_control(control_type, baudrate)
+        except Exception as e:
+            self.__detect_error_layer(e, "Link Control")
         return response
 
     @keyword("Read Data By Identifier")
@@ -976,7 +1016,10 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         # User needs to update the configuration to properly decode the response
         # e.g. uds_device.config['data_identifiers'].update(did_codec)
         if uds_device.diag_service_db is None:
-            response = uds_device.client.read_data_by_identifier(data_id_list)
+            try:
+                response = uds_device.client.read_data_by_identifier(data_id_list)
+            except Exception as e:
+                self.__detect_error_layer(e, "Read Data")
             return response
 
         SID_RQ = 34 # The request id of read data by identifier
@@ -986,8 +1029,11 @@ Requests a value associated with a data identifier (DID) through the ReadDataByI
         uds_device.config['data_identifiers'].update(did_codec)
 
         for data_id in data_id_list:
-            response = uds_device.client.read_data_by_identifier(data_id)
-            responses.append(response)
+            try:
+                response = uds_device.client.read_data_by_identifier(data_id)
+                responses.append(response)
+            except Exception as e:
+                self.__detect_error_layer(e, "Read Data")
 
         for i in range(0, len(data_id_list)):
             logger.info(responses[i].service_data.values[data_id_list[i]])
@@ -1066,7 +1112,10 @@ Performs a ReadDiagnosticInformation service request.
   The response from the ReadDiagnosticInformation service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
+        try:
+            response = uds_device.client.read_dtc_information(subfunction, status_mask, severity_mask, dtc, snapshot_record_number,extended_data_record_number, extended_data_size, memory_selection)
+        except Exception as e:
+            self.__detect_error_layer(e, "Read Diagnostic Information")
         return response
 
     @keyword("Read Memory By Address")
@@ -1091,7 +1140,10 @@ Reads a block of memory from the server by sending a ReadMemoryByAddress service
   The response from the ReadMemoryByAddress service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.read_memory_by_address(memory_location)
+        try:
+            response = uds_device.client.read_memory_by_address(memory_location)
+        except Exception as e:
+            self.__detect_error_layer(e, "ReadMemory By Address")
         return response
 
     @keyword("Request Download")
@@ -1122,7 +1174,10 @@ Informs the server that the client wants to initiate a download from the client 
   The response from the RequestDownload service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_download(memory_location, dfi)
+        try:
+            response = uds_device.client.request_download(memory_location, dfi)
+        except Exception as e:
+            self.__detect_error_layer(e, "Request Download")
         return response
 
     @keyword("Request Transfer Exit")
@@ -1147,7 +1202,10 @@ Informs the server that the client wants to stop the data transfer by sending a 
   The response from the RequestTransferExit service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_transfer_exit(data)
+        try:
+            response = uds_device.client.request_transfer_exit(data)
+        except Exception as e:
+            self.__detect_error_layer(e, "Request Transfer Exit")
         return response
 
     @keyword("Request Upload")
@@ -1178,7 +1236,10 @@ Informs the server that the client wants to initiate an upload from the server t
   The response from the RequestUpload service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_upload(memory_location, dfi)
+        try:
+            response = uds_device.client.request_upload(memory_location, dfi)
+        except Exception as e:
+            self.__detect_error_layer(e, "Request Upload")
         return response
 
     @keyword("Routine Control")
@@ -1223,7 +1284,7 @@ Sends a generic request for the RoutineControl service.
         try:
             response = uds_device.client.routine_control(routine_id, control_type, data)
         except Exception as e:
-            BuiltIn().fail(f"Fail to send a Routine Control request. Reason: {e}")
+            self.__detect_error_layer(e, "Routine Control")
         return response
 
     def security_access(self, level, seed_params=bytes(), device_name="default"):
@@ -1254,7 +1315,10 @@ The key computation is done by calling config['security_algo'].
   The response from the SecurityAccess service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.unlock_security_access(level, seed_params)
+        try:
+            response = uds_device.client.unlock_security_access(level, seed_params)
+        except Exception as e:
+            self.__detect_error_layer(e, "Security Access")
         return response
 
     @keyword("Tester Present")
@@ -1279,7 +1343,7 @@ Sends a TesterPresent request to keep the session active.
         try:
             response = uds_device.client.tester_present()
         except Exception as e:
-            BuiltIn().fail(f"Fail to send a TesterPresent request. Reason: {e}")
+            self.__detect_error_layer(e, "Tester Present")
         return response
 
     @keyword("Transfer Data")
@@ -1310,7 +1374,10 @@ Transfers a block of data to/from the client to/from the server by sending a Tra
   The response from the TransferData service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.transfer_data(sequence_number, data)
+        try:
+            response = uds_device.client.transfer_data(sequence_number, data)
+        except Exception as e:
+            self.__detect_error_layer(e, "Transfer Data")
         return response
 
     @keyword("Write Data By Identifier")
@@ -1347,7 +1414,10 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         # User needs to update the configuration to properly encode/decode the request/response
         # e.g. uds_device.config['data_identifiers'].update(did_codec)
         if uds_device.diag_service_db is None:
-            response = uds_device.client.write_data_by_identifier(did, value)
+            try:
+                response = uds_device.client.write_data_by_identifier(did, value)
+            except Exception as e:
+                self.__detect_error_layer(e, "Write Data")
             return response
 
         SID_RQ = 46 # The request id of write data by identifier
@@ -1355,9 +1425,11 @@ Requests to write a value associated with a data identifier (DID) through the Wr
         # Get the did_codec from pdx file and set it to uds config
         did_codec = uds_device.diag_service_db.get_did_codec(SID_RQ)
         uds_device.config['data_identifiers'].update(did_codec)
-
-        response = uds_device.client.write_data_by_identifier(did, value)
-        logger.info(f"DID echo: {response.service_data.did_echo}")
+        try:
+            response = uds_device.client.write_data_by_identifier(did, value)
+            logger.info(f"DID echo: {response.service_data.did_echo}")
+        except Exception as e:
+            self.__detect_error_layer(e, "Write Data")
         return response
 
     @keyword("Write Memory By Address")
@@ -1388,7 +1460,10 @@ Writes a block of memory in the server by sending a WriteMemoryByAddress service
   The response from the WriteMemoryByAddress service request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.write_memory_by_address(memory_location, data)
+        try:
+            response = uds_device.client.write_memory_by_address(memory_location, data)
+        except Exception as e:
+            self.__detect_error_layer(e, "Write Memory By Address")
         return response
 
     @keyword("Request File Transfer")
@@ -1454,7 +1529,10 @@ Sends a RequestFileTransfer request
   The response from the file operation.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.request_file_transfer(moop, path, dfi, filesize)
+        try:
+            response = uds_device.client.request_file_transfer(moop, path, dfi, filesize)
+        except Exception as e:
+            self.__detect_error_layer(e, "Request File Transfer")
         return response
 
     @keyword("Authentication")
@@ -1553,16 +1631,19 @@ Sends an Authentication request introduced in 2020 version of ISO-14229-1.
   The server's response to the authentication request.
         """
         uds_device = self.__device_check(device_name)
-        response = uds_device.client.authentication(authentication_task,
-                                              communication_configuration,
-                                              certificate_client,
-                                              challenge_client,
-                                              algorithm_indicator,
-                                              certificate_evaluation_id,
-                                              certificate_data,
-                                              proof_of_ownership_client,
-                                              ephemeral_public_key_client,
-                                              additional_parameter)
+        try:
+            response = uds_device.client.authentication(authentication_task,
+                                                  communication_configuration,
+                                                  certificate_client,
+                                                  challenge_client,
+                                                  algorithm_indicator,
+                                                  certificate_evaluation_id,
+                                                  certificate_data,
+                                                  proof_of_ownership_client,
+                                                  ephemeral_public_key_client,
+                                                  additional_parameter)
+        except Exception as e:
+            self.__detect_error_layer(e, "Authentication")
         return response
 
     @keyword("Routine Control By Name")
