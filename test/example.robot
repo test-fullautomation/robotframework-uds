@@ -15,7 +15,7 @@
 # Author: Mai Minh Tri (MS/EMC51-XC)
 
 *** Settings ***
-Library    RobotFramework_TestsuitesManagement    WITH NAME    testsuites
+Library    RobotFramework_TestsuitesManagement    AS    testsuites
 Library    RobotFramework_UDS
 Suite Setup    Connect
 Suite Teardown    Disconnect
