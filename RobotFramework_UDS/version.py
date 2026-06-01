@@ -1,4 +1,4 @@
-#  Copyright 2020-2024 Robert Bosch GmbH
+#  Copyright 2020-2025 Robert Bosch GmbH
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,5 +12,5 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-VERSION      = '0.1.17'
-VERSION_DATE = '02.09.2025'
+VERSION      = '0.2.0'
+VERSION_DATE = '23.02.2026'

@@ -18,12 +18,12 @@
 \historychange{Initial version}
 
 \historyversiondate{0.1.4}{09/2024}
-\historychange{- Update \rcode{Write Data By Name} keyword to return response with given service name instead of did.}
+\historychange{- Update \texttt{Write Data By Name} keyword to return response with given service name instead of did.}
 
 \historyversiondate{0.1.5}{10/2024}
-\historychange{- Update \rcode{Read Data By Name} keyword to return response with given service name instead of did.\newline
-- Update \rcode{Get Encoded Request Message} keyword to support convert string to proper data type for request parameters.\newline
-- Update \rcode{Get Decoded Response Message} keyword to support decoded response data.}
+\historychange{- Update \texttt{Read Data By Name} keyword to return response with given service name instead of did.\newline
+- Update \texttt{Get Encoded Request Message} keyword to support convert string to proper data type for request parameters.\newline
+- Update \texttt{Get Decoded Response Message} keyword to support decoded response data.}
 
 \historyversiondate{0.1.6}{10/2024}
 \historychange{Temporary solution for encoding byte field param with dynamic length}
@@ -33,29 +33,35 @@
 
 \historyversiondate{0.1.8}{10/2024}
 \historychange{- Remove temporary solution for encoding byte field param with dynamic length\newline
-- Update package requirements to use \rcode{odxtools} version greater than \rcode{8.2.1}}
+- Update package requirements to use \texttt{odxtools} version greater than \texttt{8.2.1}}
 
 \historyversiondate{0.1.9}{10/2024}
-\historychange{Add \rcode{Input Output Control By Name} keyword}
+\historychange{Add \texttt{Input Output Control By Name} keyword}
 
 \historyversiondate{0.1.10}{10/2024}
-\historychange{Add \rcode{Send UDS Request By Name} keyword}
+\historychange{Add \texttt{Send UDS Request By Name} keyword}
 
 \historyversiondate{0.1.11}{02/2025}
-\historychange{Fix the type error that occurs when user utilize string parameters in the \rcode{Create UDS Connector} keyword}
+\historychange{Fix the type error that occurs when user utilize string parameters in the \texttt{Create UDS Connector} keyword}
 
 \historyversiondate{0.1.12}{02/2025}
-\historychange{Update \rcode{Read/Write data by identifier} keywords can be used without the need for PDX file}
+\historychange{Update \texttt{Read/Write data by identifier} keywords can be used without the need for PDX file}
 
 \historyversiondate{0.1.13}{03/2025}
 \historychange{Support new pdx format using TABLE-KEY}
 
 \historyversiondate{0.1.14}{03/2025}
-\historychange{Add the \rcode{Reconnect} keyword to enable users to attempt re-establishing the connection}
+\historychange{Add the \texttt{Reconnect} keyword to enable users to attempt re-establishing the connection}
 
 \historyversiondate{0.1.15}{05/2025}
-\historychange{Align \rcode{Read data by name} keyword's response to contain short name of service}
+\historychange{Align \texttt{Read data by name} keyword's response to contain short name of service}
 
 \historyversiondate{0.1.16}{08/2025}
-\historychange{Add \rcode{Get UDS Device Config By Keys} and \rcode{Update UDS Device Config By Keys} keywords for managing UDS device configurations}
+\historychange{Added keywords for managing UDS device configurations:\newline
+- \texttt{Get UDS Device Config By Keys}\newline
+- \texttt{Update UDS Device Config By Keys}}
+
+\historyversiondate{0.2.0}{23.02.2026}
+\historychange{Usage of \texttt{Setuptools} replaced by usage of \texttt{PIP/TOML/Setuptools}}
+
 \end{packagehistory}
