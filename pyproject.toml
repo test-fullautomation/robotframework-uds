@@ -18,7 +18,7 @@
 #
 # TOML file used for component installation
 #
-# Version 0.1.0 / 23.02.2026
+# Version 0.2.0 / 11.11.2026
 #
 # --------------------------------------------------------------------------------------------------------------
 #
@@ -34,7 +34,7 @@
 [build-system]
 # 'requires' specifies the dependencies necessary for the build process (meaning the conversion of source code into an installable distribution)
 requires      = ["setuptools>=80.9.0", "wheel", "build", "docutils>=0.22.4", "robotframework>=6.1", "colorama",
-                 "GenPackageDoc", "PythonExtensionsCollection"] # need to be strengthened later to: "GenPackageDoc>=0.43.0"
+                 "PythonExtensionsCollection"]
 build-backend = "build_backend"
 backend-path  = ["."] # the repository main folder
 
@@ -62,14 +62,12 @@ classifiers = [
 # 'dependencies' defines the dependencies required to run the application or library (runtime dependencies)
 dependencies = [
     "robotframework>=6.1",
-    "dotdict",
     "colorama",
     "udsoncan",
     "doipclient",
     "odxtools>=8.2.1",
     "python-can>=4.5.0",
     "can-isotp>=2.0.6",
-    "GenPackageDoc",
     "PythonExtensionsCollection"
 ]
 dynamic = ["version"]
@@ -81,8 +79,8 @@ dynamic = ["version"]
 #
 [project.optional-dependencies]
 dev = [
-    "pytest>=6.0",          # !to be verified !
-    "pytest-cov>=3.0",      # !to be verified !
+    "pytest>=6.0",
+    "pytest-cov>=3.0",
 ]
 
 docs = [
