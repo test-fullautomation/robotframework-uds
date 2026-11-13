@@ -32,7 +32,7 @@ bazel_dep(name = "rules_python", version = "1.7.0")
 # module that references "@platforms//..." in its own BUILD.bazel must
 # declare this bazel_dep itself. Version 0.0.11 matches the version
 # rules_python 1.7.0 itself depends on.
-bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "platforms", version = "1.0.0")
 
 # Shared pip_install.bzl rules (pip_install_dir)
 bazel_dep(name = "pip_utils", version = "0.1.0")
@@ -82,13 +82,11 @@ variant_git_repository = use_repo_rule(
 variant_git_repository(
     name = "robotframework_uds_src",
     remote = "https://github.com/test-fullautomation/robotframework-uds.git",
-    # Used when --config=tagged is passed (BUILD_VARIANT=tagged) and no
-    # RELEASE_TAG_OVERRIDE is set.
-    #
-    # To build against a DIFFERENT tag without editing this file, override
-    # it on the command line instead:
+    # release_tag intentionally omitted: for a release, every participating
+    # component gets the SAME tag, passed once via the command line instead
+    # of being hardcoded per component here:
     #   bazel build --config=tagged --repo_env=RELEASE_TAG_OVERRIDE=rel/0.2.0 //...
-    release_tag = "rel/0.2.0",
+    # 'tagged' mode fails loudly at fetch time if this is not set.
     # Used when BUILD_VARIANT=daily (the project default - no --config
     # needed, see build/.bazelrc) - tracks this branch's current HEAD at
     # fetch time. Intentionally non-hermetic; Daily Build/Test only.
